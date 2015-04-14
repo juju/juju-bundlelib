@@ -10,6 +10,8 @@ from models import (
 
 def _parse_v3_unit_placement(placement):
     """Return a UnitPlacement for bundles version 3, given a placement string.
+
+    See https://github.com/juju/charmstore/blob/v4/docs/bundles.md
     """
     container = machine = service = unit = ''
     if ':' in placement:
@@ -25,6 +27,8 @@ def _parse_v3_unit_placement(placement):
 
 def _parse_v4_unit_placement(placement):
     """Return a UnitPlacement for bundles version 4, given a placement string.
+
+    See https://github.com/juju/charmstore/blob/v4/docs/bundles.md
     """
     container = machine = service = unit = ''
     if ':' in placement:
@@ -67,22 +71,6 @@ class ChangeSet(object):
     def next_action(self):
         """Return an incremental integer to be included in the changes ids."""
         return next(self._counter)
-
-
-def parse(bundle, handler=None):
-    """Return a generator yielding changes required to deploy the given bundle.
-
-    The bundle argument is a YAML decoded Python dict.
-    """
-    changeset = ChangeSet(bundle)
-    if handler is None:
-        handler = handle_services
-    while True:
-        handler = handler(changeset)
-        for change in changeset.recv():
-            yield change
-        if handler is None:
-            break
 
 
 def handle_services(changeset):
@@ -199,3 +187,17 @@ def handle_units(changeset):
                     placement = _parse_v3_unit_placement(
                         placement_directives[i])
             changeset.send(record)
+
+
+def parse(bundle, handler=handle_services):
+    """Return a generator yielding changes required to deploy the given bundle.
+
+    The bundle argument is a YAML decoded Python dict.
+    """
+    changeset = ChangeSet(bundle)
+    while True:
+        handler = handler(changeset)
+        for change in changeset.recv():
+            yield change
+        if handler is None:
+            break
