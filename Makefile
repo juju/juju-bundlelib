@@ -1,5 +1,5 @@
 PYTHON = python
-APT_SYSDEPS = python-dev python-pip python-setuptools
+APT_SYSDEPS = python-dev python-pip python-setuptools python-sphinx
 # Since the python-tox package in Ubuntu uses Python 3, use pip to install tox
 # instead. This also works on OSX where tox is not present in Homebrew.
 PIP_SYSDEPS = tox
@@ -46,6 +46,10 @@ clean:
 	# Remove Python compiled bytecode.
 	find . -name '*.pyc' -delete
 	find . -name '__pycache__' -type d -delete
+
+.PHONY: docs
+docs: setup
+	$(MAKE) -C docs html
 
 .PHONY: help
 help:

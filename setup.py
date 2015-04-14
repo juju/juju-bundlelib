@@ -7,6 +7,7 @@ from setuptools import (
     setup,
 )
 
+import src
 
 PROJECT_NAME = 'jujubundlelib'
 
@@ -23,7 +24,7 @@ test_requirements = [
 
 setup(
     name=PROJECT_NAME,
-    version='0.1.0',
+    version=src.get_version(),
     description='A python library for working with Juju bundles',
     long_description=readme,
     author="Juju UI Team",
