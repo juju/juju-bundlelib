@@ -78,7 +78,7 @@ release: check
 	$(PYTHON) setup.py register sdist upload
 
 .PHONY: setup
-setup: $(SYSDEPS_INSTALLED) $(DEVENVPIP)
+setup: $(SYSDEPS_INSTALLED) $(DEVENVPIP) setup.py
 
 .PHONY: source
 source:

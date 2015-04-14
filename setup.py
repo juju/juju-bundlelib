@@ -30,6 +30,7 @@ setup(
     author="Juju UI Team",
     author_email='juju-gui@lists.ubuntu.com',
     url='https://github.com/juju/juju-bundlelib',
+    scripts=['getchangeset'],
     packages=find_packages(),
     package_dir={PROJECT_NAME: []},
     include_package_data=True,
