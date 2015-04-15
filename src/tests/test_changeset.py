@@ -200,20 +200,20 @@ class TestHandleMachines(unittest.TestCase):
         self.assertEqual(
             [
                 {
-                    'id': 'addMachine-0',
-                    'method': 'addMachine',
+                    'id': 'addMachines-0',
+                    'method': 'addMachines',
                     'args': ['vivid', {}],
                     'requires': []
                 },
                 {
-                    'id': 'addMachine-1',
-                    'method': 'addMachine',
+                    'id': 'addMachines-1',
+                    'method': 'addMachines',
                     'args': ['', {}],
                     'requires': []
                 },
                 {
-                    'id': 'addMachine-2',
-                    'method': 'addMachine',
+                    'id': 'addMachines-2',
+                    'method': 'addMachines',
                     'args': ['', {'cpu-cores': 4}],
                     'requires': []
                 },
@@ -309,8 +309,8 @@ class TestHandleUnits(unittest.TestCase):
             'rails': 'addService-4',
         }
         cs.machines_added = {
-            '0': 'addMachine-0',
-            '42': 'addMachine-42',
+            '0': 'addMachines-0',
+            '42': 'addMachines-42',
         }
         handler = changeset.handle_units(cs)
         self.assertIsNone(handler)
@@ -319,26 +319,26 @@ class TestHandleUnits(unittest.TestCase):
                 {
                     'id': 'addUnit-0',
                     'method': 'addUnit',
-                    'args': ['$addService-1', 1, '$addMachine-42'],
-                    'requires': ['addMachine-42'],
+                    'args': ['$addService-1', 1, '$addMachines-42'],
+                    'requires': ['addService-1', 'addMachines-42'],
                 },
                 {
                     'id': 'addUnit-1',
                     'method': 'addUnit',
                     'args': ['$addService-3', 1, None],
-                    'requires': [],
+                    'requires': ['addService-3'],
                 },
                 {
                     'id': 'addUnit-2',
                     'method': 'addUnit',
                     'args': ['$addService-3', 1, None],
-                    'requires': [],
+                    'requires': ['addService-3'],
                 },
                 {
                     'id': 'addUnit-3',
                     'method': 'addUnit',
-                    'args': ['$addService-4', 1, '$addMachine-0'],
-                    'requires': ['addMachine-0'],
+                    'args': ['$addService-4', 1, '$addMachines-0'],
+                    'requires': ['addService-4', 'addMachines-0'],
                 },
             ],
             cs.recv())
