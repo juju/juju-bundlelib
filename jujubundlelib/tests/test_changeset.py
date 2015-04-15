@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 from collections import OrderedDict
 import unittest
 
-from src import changeset
+from jujubundlelib import changeset
 
 
 class TestChangeSet(unittest.TestCase):
