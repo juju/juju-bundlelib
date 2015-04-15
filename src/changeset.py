@@ -105,12 +105,12 @@ def handle_services(changeset):
 
 
 def handle_machines(changeset):
-    """Populate the change set with addMachine changes."""
+    """Populate the change set with addMachines changes."""
     for machine_name, machine in changeset.bundle.get('machines', {}).items():
-        record_id = 'addMachine-{}'.format(changeset.next_action())
+        record_id = 'addMachines-{}'.format(changeset.next_action())
         changeset.send({
             'id': record_id,
-            'method': 'addMachine',
+            'method': 'addMachines',
             'args': [
                 machine.get('series', ''),
                 machine.get('constraints', {})],
