@@ -116,7 +116,7 @@ def handle_machines(changeset):
                 machine.get('constraints', {})],
             'requires': [],
         })
-        changeset.machines_added[machine_name] = record_id
+        changeset.machines_added[str(machine_name)] = record_id
     return handle_relations
 
 
