@@ -64,14 +64,14 @@ help:
 	@echo -e '\nAfter creating the development environment with "make", it is'
 	@echo 'also possible to do the following:'
 	@echo '- run a specific subset of the test suite, e.g. with'
-	@echo '  "$(DEVENV)/bin/nosetests src/tests/...";'
+	@echo '  "$(DEVENV)/bin/nosetests jujubundlelib/tests/...";'
 	@echo '- use tox as usual on this project;'
 	@echo '  see https://tox.readthedocs.org/en/latest/'
 
 
 .PHONY: lint
 lint: setup
-	@$(DEVENV)/bin/flake8 --ignore E731 --show-source src
+	@$(DEVENV)/bin/flake8 --ignore E731 --show-source jujubundlelib
 
 .PHONY: release
 release: check
@@ -90,4 +90,5 @@ sysdeps: $(SYSDEPS_INSTALLED)
 .PHONY: test
 test: setup
 	@$(DEVENV)/bin/nosetests \
-		--verbosity 2 --with-coverage --cover-erase --cover-package src
+		--verbosity 2 --with-coverage --cover-erase \
+		--cover-package jujubundlelib

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 
 from setuptools import (
@@ -7,9 +6,9 @@ from setuptools import (
     setup,
 )
 
-import src
 
 PROJECT_NAME = 'jujubundlelib'
+project = __import__(PROJECT_NAME)
 
 with open('README.rst') as readme_file:
     readme = readme_file.read()
@@ -24,7 +23,7 @@ test_requirements = [
 
 setup(
     name=PROJECT_NAME,
-    version=src.get_version(),
+    version=project.get_version(),
     description='A python library for working with Juju bundles',
     long_description=readme,
     author="Juju UI Team",
@@ -32,7 +31,6 @@ setup(
     url='https://github.com/juju/juju-bundlelib',
     scripts=['getchangeset'],
     packages=find_packages(),
-    package_dir={PROJECT_NAME: []},
     include_package_data=True,
     install_requires=requirements,
     license="LGPL3",

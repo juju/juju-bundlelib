@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 import unittest
 
-from src import models
+from jujubundlelib import models
 
 
 class TestParseV3UnitPlacement(unittest.TestCase):
