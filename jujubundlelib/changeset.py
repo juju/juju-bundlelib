@@ -80,9 +80,11 @@ def handle_machines(changeset):
             'id': record_id,
             'method': 'addMachines',
             'args': [
-                machine.get('series', ''),
-                machine.get('constraints', {}),
-                {}],
+                {
+                    'series': machine.get('series', ''),
+                    'constraints': machine.get('constraints', {}),
+                },
+            ],
             'requires': [],
         })
         changeset.machines_added[str(machine_name)] = record_id
@@ -169,7 +171,7 @@ def _handle_unit_placement(
             changeset.send({
                 'id': machine_record_id,
                 'method': 'addMachines',
-                'args': ['', {}, options],
+                'args': [options],
                 'requires': [],
             })
         else:
@@ -202,7 +204,7 @@ def _handle_container_placement(changeset, placement, machine_record_id):
     changeset.send({
         'id': container_record_id,
         'method': 'addMachines',
-        'args': ['', {}, options],
+        'args': [options],
         'requires': [machine_record_id],
     })
     return container_record_id

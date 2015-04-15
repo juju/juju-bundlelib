@@ -152,19 +152,19 @@ class TestHandleMachines(unittest.TestCase):
                 {
                     'id': 'addMachines-0',
                     'method': 'addMachines',
-                    'args': ['vivid', {}, {}],
+                    'args': [{'constraints': {}, 'series': 'vivid'}],
                     'requires': [],
                 },
                 {
                     'id': 'addMachines-1',
                     'method': 'addMachines',
-                    'args': ['', {}, {}],
+                    'args': [{'constraints': {}, 'series': ''}],
                     'requires': [],
                 },
                 {
                     'id': 'addMachines-2',
                     'method': 'addMachines',
-                    'args': ['', {'cpu-cores': 4}, {}],
+                    'args': [{'constraints': {'cpu-cores': 4}, 'series': ''}],
                     'requires': [],
                 },
             ],
@@ -319,7 +319,7 @@ class TestHandleUnits(unittest.TestCase):
                 {
                     'id': 'addMachines-1',
                     'method': 'addMachines',
-                    'args': ['', {}, {}],
+                    'args': [{}],
                     'requires': [],
                 },
                 {
@@ -420,7 +420,7 @@ class TestHandleUnits(unittest.TestCase):
                 {
                     'id': 'addMachines-1',
                     'method': 'addMachines',
-                    'args': ['', {}, {'containerType': 'lxc'}],
+                    'args': [{'containerType': 'lxc'}],
                     'requires': [],
                 },
                 {
@@ -465,7 +465,7 @@ class TestHandleUnits(unittest.TestCase):
                 {
                     'id': 'addMachines-2',
                     'method': 'addMachines',
-                    'args': ['', {}, {
+                    'args': [{
                         'containerType': 'lxc',
                         'parentId': '$addUnit-0',
                     }],
@@ -504,7 +504,7 @@ class TestHandleUnits(unittest.TestCase):
                 {
                     'id': 'addMachines-1',
                     'method': 'addMachines',
-                    'args': ['', {}, {
+                    'args': [{
                         'containerType': 'lxc',
                         'parentId': '$addMachines-47',
                     }],
@@ -621,7 +621,7 @@ class TestHandleUnits(unittest.TestCase):
                 {
                     'id': 'addMachines-2',
                     'method': 'addMachines',
-                    'args': ['', {}, {
+                    'args': [{
                         'containerType': 'lxc',
                         'parentId': '$addUnit-0',
                     }],
