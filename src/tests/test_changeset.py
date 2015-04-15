@@ -6,61 +6,6 @@ import unittest
 from src import changeset
 
 
-class TestParsePlacements(unittest.TestCase):
-
-    def test_parse_v3(self):
-        self.assertEqual(
-            changeset.UnitPlacement('', '', '', ''),
-            changeset._parse_v3_unit_placement(''),
-        )
-        self.assertEqual(
-            changeset.UnitPlacement('', '0', '', ''),
-            changeset._parse_v3_unit_placement('0'),
-        )
-        self.assertEqual(
-            changeset.UnitPlacement('', '', 'mysql', ''),
-            changeset._parse_v3_unit_placement('mysql'),
-        )
-        self.assertEqual(
-            changeset.UnitPlacement('lxc', '0', '', ''),
-            changeset._parse_v3_unit_placement('lxc:0'),
-        )
-        self.assertEqual(
-            changeset.UnitPlacement('', '', 'mysql', '1'),
-            changeset._parse_v3_unit_placement('mysql=1'),
-        )
-        self.assertEqual(
-            changeset.UnitPlacement('lxc', '', 'mysql', '1'),
-            changeset._parse_v3_unit_placement('lxc:mysql=1'),
-        )
-
-    def test_parse_v4(self):
-        self.assertEqual(
-            changeset.UnitPlacement('', '', '', ''),
-            changeset._parse_v4_unit_placement(''),
-        )
-        self.assertEqual(
-            changeset.UnitPlacement('', '0', '', ''),
-            changeset._parse_v4_unit_placement('0'),
-        )
-        self.assertEqual(
-            changeset.UnitPlacement('', '', 'mysql', ''),
-            changeset._parse_v4_unit_placement('mysql'),
-        )
-        self.assertEqual(
-            changeset.UnitPlacement('lxc', '0', '', ''),
-            changeset._parse_v4_unit_placement('lxc:0'),
-        )
-        self.assertEqual(
-            changeset.UnitPlacement('', '', 'mysql', '1'),
-            changeset._parse_v4_unit_placement('mysql/1'),
-        )
-        self.assertEqual(
-            changeset.UnitPlacement('lxc', '', 'mysql', '1'),
-            changeset._parse_v4_unit_placement('lxc:mysql/1'),
-        )
-
-
 class TestChangeSet(unittest.TestCase):
 
     def setUp(self):
@@ -76,6 +21,11 @@ class TestChangeSet(unittest.TestCase):
         self.cs.send('bar')
         self.assertEqual(['foo', 'bar'], self.cs.recv())
         self.assertEqual([], self.cs.recv())
+
+    def test_is_legacy_bundle(self):
+        self.assertFalse(self.cs.is_legacy_bundle())
+        cs = changeset.ChangeSet({'services': {}})
+        self.assertTrue(cs.is_legacy_bundle())
 
 
 class TestParse(unittest.TestCase):
@@ -202,20 +152,20 @@ class TestHandleMachines(unittest.TestCase):
                 {
                     'id': 'addMachines-0',
                     'method': 'addMachines',
-                    'args': ['vivid', {}],
-                    'requires': []
+                    'args': ['vivid', {}, {}],
+                    'requires': [],
                 },
                 {
                     'id': 'addMachines-1',
                     'method': 'addMachines',
-                    'args': ['', {}],
-                    'requires': []
+                    'args': ['', {}, {}],
+                    'requires': [],
                 },
                 {
                     'id': 'addMachines-2',
                     'method': 'addMachines',
-                    'args': ['', {'cpu-cores': 4}],
-                    'requires': []
+                    'args': ['', {'cpu-cores': 4}, {}],
+                    'requires': [],
                 },
             ],
             cs.recv())
@@ -347,3 +297,341 @@ class TestHandleUnits(unittest.TestCase):
         cs = changeset.ChangeSet({'services': {}})
         changeset.handle_units(cs)
         self.assertEqual([], cs.recv())
+
+    def test_unit_in_new_machine(self):
+        cs = changeset.ChangeSet({
+            'services': OrderedDict((
+                ('django-new', {
+                    'charm': 'cs:trusty/django-42',
+                    'num_units': 1,
+                    'to': 'new',
+                }),
+            )),
+            'machines': {},
+        })
+        cs.services_added = {
+            'django-new': 'addService-1',
+        }
+        handler = changeset.handle_units(cs)
+        self.assertIsNone(handler)
+        self.assertEqual(
+            [
+                {
+                    'id': 'addMachines-1',
+                    'method': 'addMachines',
+                    'args': ['', {}, {}],
+                    'requires': [],
+                },
+                {
+                    'id': 'addUnit-0',
+                    'method': 'addUnit',
+                    'args': ['$addService-1', 1, '$addMachines-1'],
+                    'requires': ['addService-1', 'addMachines-1'],
+                },
+            ],
+            cs.recv())
+
+    def test_unit_colocation_to_unit(self):
+        cs = changeset.ChangeSet({
+            'services': OrderedDict((
+                ('django-new', {
+                    'charm': 'cs:trusty/django-42',
+                    'num_units': 1,
+                }),
+                ('django-unit', {
+                    'charm': 'cs:trusty/django-42',
+                    'num_units': 1,
+                    'to': 'django-new/0',
+                }),
+            )),
+            'machines': {},
+        })
+        cs.services_added = {
+            'django-new': 'addService-1',
+            'django-unit': 'addService-2',
+        }
+        handler = changeset.handle_units(cs)
+        self.assertIsNone(handler)
+        self.assertEqual(
+            [
+                {
+                    'id': 'addUnit-0',
+                    'method': 'addUnit',
+                    'args': ['$addService-1', 1, None],
+                    'requires': ['addService-1'],
+                },
+                {
+                    'id': 'addUnit-1',
+                    'method': 'addUnit',
+                    'args': ['$addService-2', 1, '$addUnit-0'],
+                    'requires': ['addService-2', 'addUnit-0'],
+                },
+            ],
+            cs.recv())
+
+    def test_unit_in_preexisting_machine(self):
+        cs = changeset.ChangeSet({
+            'services': OrderedDict((
+                ('django-machine', {
+                    'charm': 'cs:trusty/django-42',
+                    'num_units': 1,
+                    'to': '42',
+                }),
+            )),
+            'machines': {42: {}},
+        })
+        cs.services_added = {
+            'django-machine': 'addService-3',
+        }
+        cs.machines_added = {
+            '42': 'addMachines-42',
+        }
+        handler = changeset.handle_units(cs)
+        self.assertIsNone(handler)
+        self.assertEqual(
+            [
+                {
+                    'id': 'addUnit-0',
+                    'method': 'addUnit',
+                    'args': ['$addService-3', 1, '$addMachines-42'],
+                    'requires': ['addService-3', 'addMachines-42'],
+                },
+            ],
+            cs.recv())
+
+    def test_unit_in_new_machine_container(self):
+        cs = changeset.ChangeSet({
+            'services': OrderedDict((
+                ('django-new-lxc', {
+                    'charm': 'cs:trusty/django-42',
+                    'num_units': 1,
+                    'to': 'lxc:new',
+                }),
+            )),
+            'machines': {},
+        })
+        cs.services_added = {
+            'django-new-lxc': 'addService-4',
+        }
+        handler = changeset.handle_units(cs)
+        self.assertIsNone(handler)
+        self.assertEqual(
+            [
+                {
+                    'id': 'addMachines-1',
+                    'method': 'addMachines',
+                    'args': ['', {}, {'containerType': 'lxc'}],
+                    'requires': [],
+                },
+                {
+                    'id': 'addUnit-0',
+                    'method': 'addUnit',
+                    'args': ['$addService-4', 1, '$addMachines-1'],
+                    'requires': ['addService-4', 'addMachines-1'],
+                },
+            ],
+            cs.recv())
+
+    def test_unit_colocation_to_container_in_unit(self):
+        cs = changeset.ChangeSet({
+            'services': OrderedDict((
+                ('django-new', {
+                    'charm': 'cs:trusty/django-42',
+                    'num_units': 1,
+                }),
+                ('django-unit-lxc', {
+                    'charm': 'cs:trusty/django-42',
+                    'num_units': 1,
+                    'to': 'lxc:django-new/0',
+                }),
+            )),
+            'machines': {},
+        })
+        cs.services_added = {
+            'django-new': 'addService-1',
+            'django-unit-lxc': 'addService-5',
+        }
+        handler = changeset.handle_units(cs)
+        self.assertIsNone(handler)
+        self.maxDiff = None
+        self.assertEqual(
+            [
+                {
+                    'id': 'addUnit-0',
+                    'method': 'addUnit',
+                    'args': ['$addService-1', 1, None],
+                    'requires': ['addService-1'],
+                },
+                {
+                    'id': 'addMachines-2',
+                    'method': 'addMachines',
+                    'args': ['', {}, {
+                        'containerType': 'lxc',
+                        'parentId': '$addUnit-0',
+                    }],
+                    'requires': ['addUnit-0'],
+                },
+                {
+                    'id': 'addUnit-1',
+                    'method': 'addUnit',
+                    'args': ['$addService-5', 1, '$addMachines-2'],
+                    'requires': ['addService-5', 'addMachines-2'],
+                },
+            ],
+            cs.recv())
+
+    def test_unit_in_preexisting_machine_container(self):
+        cs = changeset.ChangeSet({
+            'services': OrderedDict((
+                ('django-machine-lxc', {
+                    'charm': 'cs:trusty/django-42',
+                    'num_units': 1,
+                    'to': 'lxc:0',
+                }),
+            )),
+            'machines': {0: {}},
+        })
+        cs.services_added = {
+            'django-machine-lxc': 'addService-6',
+        }
+        cs.machines_added = {
+            '0': 'addMachines-47',
+        }
+        handler = changeset.handle_units(cs)
+        self.assertIsNone(handler)
+        self.assertEqual(
+            [
+                {
+                    'id': 'addMachines-1',
+                    'method': 'addMachines',
+                    'args': ['', {}, {
+                        'containerType': 'lxc',
+                        'parentId': '$addMachines-47',
+                    }],
+                    'requires': ['addMachines-47'],
+                },
+                {
+                    'id': 'addUnit-0',
+                    'method': 'addUnit',
+                    'args': ['$addService-6', 1, '$addMachines-1'],
+                    'requires': ['addService-6', 'addMachines-1'],
+                },
+            ],
+            cs.recv())
+
+    def test_v3_placement_unit_in_bootstrap_node(self):
+        cs = changeset.ChangeSet({
+            'services': OrderedDict((
+                ('django', {
+                    'charm': 'cs:trusty/django-42',
+                    'num_units': 1,
+                    'to': '0',
+                }),
+            )),
+        })
+        cs.services_added = {
+            'django': 'addService-1',
+        }
+        handler = changeset.handle_units(cs)
+        self.assertIsNone(handler)
+        self.assertEqual(
+            [
+                {
+                    'id': 'addUnit-0',
+                    'method': 'addUnit',
+                    'args': ['$addService-1', 1, '0'],
+                    'requires': ['addService-1'],
+                },
+            ],
+            cs.recv())
+
+    def test_v3_placement_unit_in_service(self):
+        # TODO: implement unit to unit match.
+        pass
+
+    def test_v3_placement_unit_in_unit(self):
+        cs = changeset.ChangeSet({
+            'services': OrderedDict((
+                ('wordpress', {
+                    'charm': 'cs:utopic/wordpress-0',
+                    'num_units': 1,
+                }),
+                ('django', {
+                    'charm': 'cs:trusty/django-42',
+                    'num_units': 1,
+                    'to': 'wordpress=0',
+                }),
+            )),
+        })
+        cs.services_added = {
+            'django': 'addService-1',
+            'wordpress': 'addService-42',
+        }
+        handler = changeset.handle_units(cs)
+        self.assertIsNone(handler)
+        self.assertEqual(
+            [
+                {
+                    'id': 'addUnit-0',
+                    'method': 'addUnit',
+                    'args': ['$addService-42', 1, None],
+                    'requires': ['addService-42'],
+                },
+                {
+                    'id': 'addUnit-1',
+                    'method': 'addUnit',
+                    'args': ['$addService-1', 1, '$addUnit-0'],
+                    'requires': ['addService-1', 'addUnit-0'],
+                },
+            ],
+            cs.recv())
+
+    def test_v3_placement_unit_in_lxc_in_service(self):
+        # TODO: implement unit to unit match.
+        pass
+
+    def test_v3_placement_unit_in_lxc_in_unit(self):
+        cs = changeset.ChangeSet({
+            'services': OrderedDict((
+                ('wordpress', {
+                    'charm': 'cs:utopic/wordpress-0',
+                    'num_units': 1,
+                }),
+                ('django', {
+                    'charm': 'cs:trusty/django-42',
+                    'num_units': 1,
+                    'to': 'lxc:wordpress=0',
+                }),
+            )),
+        })
+        cs.services_added = {
+            'django': 'addService-1',
+            'wordpress': 'addService-42',
+        }
+        handler = changeset.handle_units(cs)
+        self.assertIsNone(handler)
+        self.assertEqual(
+            [
+                {
+                    'id': 'addUnit-0',
+                    'method': 'addUnit',
+                    'args': ['$addService-42', 1, None],
+                    'requires': ['addService-42'],
+                },
+                {
+                    'id': 'addMachines-2',
+                    'method': 'addMachines',
+                    'args': ['', {}, {
+                        'containerType': 'lxc',
+                        'parentId': '$addUnit-0',
+                    }],
+                    'requires': ['addUnit-0'],
+                },
+                {
+                    'id': 'addUnit-1',
+                    'method': 'addUnit',
+                    'args': ['$addService-1', 1, '$addMachines-2'],
+                    'requires': ['addService-1', 'addMachines-2'],
+                },
+            ],
+            cs.recv())
