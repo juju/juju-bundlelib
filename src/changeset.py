@@ -1,45 +1,9 @@
 from __future__ import unicode_literals
 
+import copy
 import itertools
 
-from models import (
-    Relation,
-    UnitPlacement,
-)
-
-
-def _parse_v3_unit_placement(placement):
-    """Return a UnitPlacement for bundles version 3, given a placement string.
-
-    See https://github.com/juju/charmstore/blob/v4/docs/bundles.md
-    """
-    container = machine = service = unit = ''
-    if ':' in placement:
-        container, placement = placement.split(':')
-    if '=' in placement:
-        placement, unit = placement.split('=')
-    if placement.isdigit():
-        machine = placement
-    else:
-        service = placement
-    return UnitPlacement(container, machine, service, unit)
-
-
-def _parse_v4_unit_placement(placement):
-    """Return a UnitPlacement for bundles version 4, given a placement string.
-
-    See https://github.com/juju/charmstore/blob/v4/docs/bundles.md
-    """
-    container = machine = service = unit = ''
-    if ':' in placement:
-        container, placement = placement.split(':')
-    if '/' in placement:
-        placement, unit = placement.split('/')
-    if placement.isdigit():
-        machine = placement
-    else:
-        service = placement
-    return UnitPlacement(container, machine, service, unit)
+import models
 
 
 class ChangeSet(object):
@@ -71,6 +35,10 @@ class ChangeSet(object):
     def next_action(self):
         """Return an incremental integer to be included in the changes ids."""
         return next(self._counter)
+
+    def is_legacy_bundle(self):
+        """Report whether the bundle uses the legacy (version 3) syntax."""
+        return 'machines' not in self.bundle
 
 
 def handle_services(changeset):
@@ -113,7 +81,8 @@ def handle_machines(changeset):
             'method': 'addMachines',
             'args': [
                 machine.get('series', ''),
-                machine.get('constraints', {})],
+                machine.get('constraints', {}),
+                {}],
             'requires': [],
         })
         changeset.machines_added[str(machine_name)] = record_id
@@ -123,7 +92,7 @@ def handle_machines(changeset):
 def handle_relations(changeset):
     """Populate the change set with addRelation changes."""
     for relation in changeset.bundle.get('relations', []):
-        relations = [Relation(*i.split(':')) for i in relation]
+        relations = [models.Relation(*i.split(':')) for i in relation]
         changeset.send({
             'id': 'addRelation-{}'.format(changeset.next_action()),
             'method': 'addRelation',
@@ -161,32 +130,82 @@ def handle_units(changeset):
                 'service': service_name,
                 'unit': i,
             }
-    # Second pass: ensure that requires and placement directives are taken into
-    # account.
+    _handle_units_placement(changeset, units, records)
+
+
+def _handle_units_placement(changeset, units, records):
+    """Ensure that requires and placement directives are taken into account."""
     for service_name, service in changeset.bundle['services'].items():
         # Add the addUnits record for each unit.
         placement_directives = service.get('to', [])
         if not isinstance(placement_directives, (list, tuple)):
             placement_directives = [placement_directives]
-        if placement_directives and 'machines' in changeset.bundle:
+        if placement_directives and not changeset.is_legacy_bundle():
             placement_directives += placement_directives[-1:] * \
                 (service['num_units'] - len(placement_directives))
         for i in range(service['num_units']):
             unit = units['{}/{}'.format(service_name, i)]
             record = records[unit['record']]
             if i < len(placement_directives):
-                if 'machines' in changeset.bundle:
-                    placement = _parse_v4_unit_placement(
-                        placement_directives[i])
-                    if placement.machine:
-                        machine_id = changeset.machines_added[
-                            placement.machine]
-                        record['requires'].append(machine_id)
-                        record['args'][2] = '${}'.format(machine_id)
-                else:
-                    placement = _parse_v3_unit_placement(
-                        placement_directives[i])
+                record = _handle_unit_placement(
+                    changeset, units, unit, record, placement_directives[i])
             changeset.send(record)
+
+
+def _handle_unit_placement(
+        changeset, units, unit, record, placement_directive):
+    record = copy.deepcopy(record)
+    if changeset.is_legacy_bundle():
+        placement = models.parse_v3_unit_placement(placement_directive)
+    else:
+        placement = models.parse_v4_unit_placement(placement_directive)
+    if placement.machine:
+        if placement.machine == 'new':
+            machine_record_id = 'addMachines-{}'.format(
+                changeset.next_action())
+            options = {}
+            if placement.container_type:
+                options = {'containerType': placement.container_type}
+            changeset.send({
+                'id': machine_record_id,
+                'method': 'addMachines',
+                'args': ['', {}, options],
+                'requires': [],
+            })
+        else:
+            if changeset.is_legacy_bundle():
+                record['args'][2] = '0'
+                return record
+            machine_record_id = changeset.machines_added[
+                placement.machine]
+            if placement.container_type:
+                machine_record_id = _handle_container_placement(
+                    changeset, placement, machine_record_id)
+    else:
+        placement_unit = '{}/{}'.format(
+            placement.service, placement.unit)
+        machine_record_id = units[placement_unit]['record']
+        if placement.container_type:
+                machine_record_id = _handle_container_placement(
+                    changeset, placement, machine_record_id)
+    record['requires'].append(machine_record_id)
+    record['args'][2] = '${}'.format(machine_record_id)
+    return record
+
+
+def _handle_container_placement(changeset, placement, machine_record_id):
+    container_record_id = 'addMachines-{}'.format(changeset.next_action())
+    options = {
+        'containerType': placement.container_type,
+        'parentId': '${}'.format(machine_record_id),
+    }
+    changeset.send({
+        'id': container_record_id,
+        'method': 'addMachines',
+        'args': ['', {}, options],
+        'requires': [machine_record_id],
+    })
+    return container_record_id
 
 
 def parse(bundle, handler=handle_services):
