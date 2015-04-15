@@ -154,7 +154,7 @@ def handle_units(changeset):
                     1,
                     None,
                 ],
-                'requires': [],
+                'requires': [changeset.services_added[service_name]],
             }
             units[unit_name] = {
                 'record': record_id,
