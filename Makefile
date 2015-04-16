@@ -1,3 +1,6 @@
+# Copyright 2015 Canonical Ltd.
+# Licensed under the AGPLv3, see LICENCE file for details.
+
 PYTHON = python
 APT_SYSDEPS = python-dev python-pip python-setuptools python-sphinx
 # Since the python-tox package in Ubuntu uses Python 3, use pip to install tox

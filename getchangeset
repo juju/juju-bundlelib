@@ -1,3 +1,6 @@
+# Copyright 2015 Canonical Ltd.
+# Licensed under the AGPLv3, see LICENCE file for details.
+
 from __future__ import unicode_literals
 
 import json
@@ -9,8 +12,10 @@ from jujubundlelib import changeset
 
 
 def main():
-    """Dump the changeset objects as JSON, reading the bundle YAML in from
-    stdin or a given file.
+    """Dump the changeset objects as JSON, reading the provided bundle YAML.
+
+    The YAML can be provided either from stdin or by passing a file path as
+    first argument.
     """
     source = sys.stdin
     if len(sys.argv) == 2:

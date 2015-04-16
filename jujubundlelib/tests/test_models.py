@@ -1,3 +1,6 @@
+# Copyright 2015 Canonical Ltd.
+# Licensed under the AGPLv3, see LICENCE file for details.
+
 from __future__ import unicode_literals
 
 import unittest

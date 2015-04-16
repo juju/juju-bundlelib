@@ -1,3 +1,6 @@
+# Copyright 2015 Canonical Ltd.
+# Licensed under the AGPLv3, see LICENCE file for details.
+
 from __future__ import unicode_literals
 
 from collections import OrderedDict
@@ -203,15 +206,7 @@ class TestHandleRelations(unittest.TestCase):
                 {
                     'id': 'addRelation-0',
                     'method': 'addRelation',
-                    'args': [
-                        [
-                            '$addService-3',
-                            {'name': 'foo'}
-                        ], [
-                            '$addService-1',
-                            {'name': 'bar'}
-                        ]
-                    ],
+                    'args': ['$addService-3:foo', '$addService-1:bar'],
                     'requires': [
                         'addService-3',
                         'addService-1'
