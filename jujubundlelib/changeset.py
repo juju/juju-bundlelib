@@ -1,3 +1,6 @@
+# Copyright 2015 Canonical Ltd.
+# Licensed under the AGPLv3, see LICENCE file for details.
+
 from __future__ import unicode_literals
 
 import copy
@@ -99,10 +102,9 @@ def handle_relations(changeset):
             'id': 'addRelation-{}'.format(changeset.next_action()),
             'method': 'addRelation',
             'args': [
-                [
-                    '${}'.format(changeset.services_added[rel.name]),
-                    {'name': rel.interface},
-                ] for rel in relations
+                '${}:{}'.format(
+                    changeset.services_added[rel.name], rel.interface)
+                for rel in relations
             ],
             'requires': [changeset.services_added[rel.name] for
                          rel in relations],
