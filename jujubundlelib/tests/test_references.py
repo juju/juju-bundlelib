@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 import unittest
 
 from jujubundlelib import references
-
 from jujubundlelib.tests import helpers
 
 
@@ -18,6 +17,49 @@ def make_reference(
 
 
 class TestReference(unittest.TestCase):
+
+    representation_tests = (
+        # Fully qualified.
+        (make_reference(),
+         'cs:~myuser/precise/juju-gui-42'),
+
+        # Fully qualified local.
+        (make_reference(schema='local', user=''),
+         'local:precise/juju-gui-42'),
+
+        # Promulgated charm.
+        (make_reference(user=''),
+         'cs:precise/juju-gui-42'),
+
+        # Custom name, series and revision.
+        (make_reference(name='django', series='vivid', revision=0),
+         'cs:~myuser/vivid/django-0'),
+
+        # No series.
+        (make_reference(series=''),
+         'cs:~myuser/juju-gui-42'),
+
+        # Promulgated charm without series.
+        (make_reference(user='', series=''),
+         'cs:juju-gui-42'),
+
+        # No revision.
+        (make_reference(user='dalek', revision=None, series='bundle'),
+         'cs:~dalek/bundle/juju-gui'),
+
+        # Promulgated charm without revision.
+        (make_reference(user='', revision=None),
+         'cs:precise/juju-gui'),
+
+        # No series and revision.
+        (make_reference(series='', revision=None),
+         'cs:~myuser/juju-gui'),
+
+        # Promulgated charm without series and revision.
+        (make_reference(user='', series='', revision=None),
+         'cs:juju-gui'),
+
+    )
 
     def test_attributes(self):
         # All reference attributes are correctly stored.
@@ -35,79 +77,25 @@ class TestReference(unittest.TestCase):
 
     def test_string(self):
         # The string representation of a reference is its URL.
-        tests = (
-            (make_reference(),
-             'cs:~myuser/precise/juju-gui-42'),
-            (make_reference(schema='local'),
-             'local:~myuser/precise/juju-gui-42'),
-            (make_reference(user=''),
-             'cs:precise/juju-gui-42'),
-            (make_reference(user='dalek', revision=None, series='bundle'),
-             'cs:~dalek/bundle/juju-gui'),
-            (make_reference(name='django', series='vivid', revision=0),
-             'cs:~myuser/vivid/django-0'),
-            (make_reference(user='', revision=None),
-             'cs:precise/juju-gui'),
-        )
-        for ref, expected_value in tests:
+        for ref, expected_value in self.representation_tests:
             self.assertEqual(expected_value, str(ref))
 
     def test_repr(self):
         # A reference is correctly represented.
-        tests = (
-            (make_reference(),
-             '<Reference: cs:~myuser/precise/juju-gui-42>'),
-            (make_reference(schema='local'),
-             '<Reference: local:~myuser/precise/juju-gui-42>'),
-            (make_reference(user=''),
-             '<Reference: cs:precise/juju-gui-42>'),
-            (make_reference(user='dalek', revision=None, series='bundle'),
-             '<Reference: cs:~dalek/bundle/juju-gui>'),
-            (make_reference(name='django', series='vivid', revision=0),
-             '<Reference: cs:~myuser/vivid/django-0>'),
-            (make_reference(user='', revision=None),
-             '<Reference: cs:precise/juju-gui>'),
-        )
-        for ref, expected_value in tests:
+        for ref, expected_value in self.representation_tests:
+            expected_value = '<Reference: {}>'.format(expected_value)
             self.assertEqual(expected_value, repr(ref))
 
     def test_path(self):
         # The reference path is properly returned as a URL string without the
         # schema.
-        tests = (
-            (make_reference(),
-             '~myuser/precise/juju-gui-42'),
-            (make_reference(schema='local'),
-             '~myuser/precise/juju-gui-42'),
-            (make_reference(user=''),
-             'precise/juju-gui-42'),
-            (make_reference(user='dalek', revision=None, series='bundle'),
-             '~dalek/bundle/juju-gui'),
-            (make_reference(name='django', series='vivid', revision=0),
-             '~myuser/vivid/django-0'),
-            (make_reference(user='', revision=None),
-             'precise/juju-gui'),
-        )
-        for ref, expected_value in tests:
+        for ref, expected_value in self.representation_tests:
+            expected_value = expected_value.split(':', 1)[1]
             self.assertEqual(expected_value, ref.path())
 
     def test_id(self):
         # The reference id is correctly returned.
-        tests = (
-            (make_reference(),
-             'cs:~myuser/precise/juju-gui-42'),
-            (make_reference(schema='local'),
-             'local:~myuser/precise/juju-gui-42'),
-            (make_reference(user=''),
-             'cs:precise/juju-gui-42'),
-            (make_reference(user='dalek', revision=None, series='bundle'),
-             'cs:~dalek/bundle/juju-gui'),
-            (make_reference(name='django', series='vivid', revision=0),
-             'cs:~myuser/vivid/django-0'),
-            (make_reference(user='', revision=None),
-             'cs:precise/juju-gui'),
-        )
-        for ref, expected_value in tests:
+        for ref, expected_value in self.representation_tests:
             self.assertEqual(expected_value, ref.id())
 
     def test_jujucharms_id(self):
@@ -300,6 +288,115 @@ class TestReferenceFromFullyQualifiedUrl(
         )
         for url, expected_ref in tests:
             ref = references.Reference.from_fully_qualified_url(url)
+            self.assertEqual(expected_ref, ref)
+
+
+class TestReferenceFromString(
+        helpers.ValueErrorTestsMixin, unittest.TestCase):
+
+    def test_invalid_schema_error(self):
+        # A ValueError is raised if the URL schema is not valid.
+        expected_error = b'URL has invalid schema: http'
+        with self.assert_value_error(expected_error):
+            references.Reference.from_string('http:precise/juju-gui')
+
+    def test_invalid_user_form_error(self):
+        # A ValueError is raised if the user form is not valid.
+        expected_error = b'URL has invalid user name form: jean-luc'
+        with self.assert_value_error(expected_error):
+            references.Reference.from_string(
+                'cs:jean-luc/precise/juju-gui')
+
+    def test_invalid_user_name_error(self):
+        # A ValueError is raised if the user name is not valid.
+        expected_error = b'URL has invalid user name: jean:luc'
+        with self.assert_value_error(expected_error):
+            references.Reference.from_string(
+                'cs:~jean:luc/precise/juju-gui')
+
+    def test_local_user_name_error(self):
+        # A ValueError is raised if a user is specified on a local entity.
+        expected_error = (
+            b'local entity URL with user name: '
+            b'local:~jean-luc/precise/juju-gui')
+        with self.assert_value_error(expected_error):
+            references.Reference.from_string(
+                'local:~jean-luc/precise/juju-gui')
+
+    def test_invalid_form_error(self):
+        # A ValueError is raised if the URL is not valid.
+        expected_error = b'URL has invalid form: cs:~user/series/name/what-?'
+        with self.assert_value_error(expected_error):
+            references.Reference.from_string(
+                'cs:~user/series/name/what-?')
+
+    def test_invalid_series_error(self):
+        # A ValueError is raised if the series is not valid.
+        expected_error = b'URL has invalid series: boo!'
+        with self.assert_value_error(expected_error):
+            references.Reference.from_string(
+                'cs:boo!/juju-gui-42')
+
+    def test_invalid_name_error(self):
+        # A ValueError is raised if the entity name is not valid.
+        expected_error = b'URL has invalid name: not:valid'
+        with self.assert_value_error(expected_error):
+            references.Reference.from_string(
+                'cs:precise/not:valid-42')
+
+    def test_success(self):
+        # References are correctly instantiated by parsing the URL.
+        tests = (
+            # Fully qualified.
+            ('cs:~myuser/precise/juju-gui-42',
+             make_reference()),
+
+            # Fully qualified and promulgated.
+            ('cs:trusty/juju-gui-42',
+             make_reference(user='', series='trusty')),
+
+            # Fully qualified local.
+            ('local:precise/juju-gui-42',
+             make_reference(schema='local', user='')),
+
+            # No schema.
+            ('~myuser/precise/juju-gui-42',
+             make_reference()),
+
+            # No schema and promulgated.
+            ('trusty/juju-gui-42',
+             make_reference(user='', series='trusty')),
+
+            # No series.
+            ('cs:~myuser/juju-gui-42',
+             make_reference(series='')),
+
+            # No series and promulgated.
+            ('cs:juju-gui-42',
+             make_reference(user='', series='')),
+
+            # No revision.
+            ('cs:~myuser/precise/juju-gui',
+             make_reference(revision=None)),
+
+            # No revision and not hyphen in name.
+            ('cs:~myuser/precise/django',
+             make_reference(name='django', revision=None)),
+
+            # No revision and promulgated.
+            ('cs:precise/juju-gui',
+             make_reference(user='', revision=None)),
+
+            # No schema, series and revision.
+            ('~myuser/juju-gui',
+             make_reference(series='', revision=None)),
+
+            # No schema, series and revision, promulgated.
+            ('juju-gui',
+             make_reference(user='', series='', revision=None)),
+        )
+        for url, expected_ref in tests:
+            ref = references.Reference.from_string(url)
             self.assertEqual(expected_ref, ref)
 
 
