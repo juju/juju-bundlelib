@@ -63,6 +63,18 @@ class Reference(object):
         self.charmworld_id = None
 
     @classmethod
+    def from_string(cls, url):
+        """Given an entity URL as a string, create and return a Reference.
+
+        The given URL can be not fully qualified, meaning it can miss
+        the schema (in which case "cs:" is inferred), the series
+        (defaulting to "") and the revision (set to None if not specified).
+
+        Raise a ValueError if the provided value is not a valid URL.
+        """
+        return cls(*_parse_url(url, fully_qualified=False))
+
+    @classmethod
     def from_fully_qualified_url(cls, url):
         """Given an entity URL as a string, create and return a Reference.
 
@@ -73,7 +85,7 @@ class Reference(object):
         Raise a ValueError if the provided value is not a valid and fully
         qualified URL, also including the schema and the revision.
         """
-        return cls(*_parse_fully_qualified_url(url))
+        return cls(*_parse_url(url, fully_qualified=True))
 
     @classmethod
     def from_jujucharms_url(cls, url):
@@ -106,12 +118,11 @@ class Reference(object):
 
     def path(self):
         """Return the reference as a string without the schema."""
-        user_part = '~{}/'.format(self.user) if self.user else ''
-        revision_part = ''
+        user = '~{}'.format(self.user) if self.user else ''
+        name_revision = self.name
         if self.revision is not None:
-            revision_part = '-{}'.format(self.revision)
-        return '{}{}/{}{}'.format(
-            user_part, self.series, self.name, revision_part)
+            name_revision += '-{}'.format(self.revision)
+        return '/'.join(filter(None, [user, self.series, name_revision]))
 
     def id(self):
         """Return the reference URL as a string."""
@@ -140,21 +151,25 @@ class Reference(object):
         return self.schema == 'local'
 
 
-def _parse_fully_qualified_url(url):
+def _parse_url(url, fully_qualified=False):
     """Parse the given charm or bundle URL, provided as a string.
 
     Return a tuple containing the entity reference fragments: schema, user,
     series, name and revision. Each fragment is a string except revision (int).
 
-    Raise a ValueError with a descriptive message if the given URL is not a
-    valid and fully qualified entity URL.
+    Raise a ValueError with a descriptive message if the given URL is not
+    valid. If fully_qualified is True, the URL must include the schema, series
+    and revision, otherwise a ValueError is raised.
     """
     # Retrieve the schema.
     try:
         schema, remaining = url.split(':', 1)
     except ValueError:
-        msg = 'URL has no schema: {}'.format(url)
-        raise ValueError(msg.encode('utf-8'))
+        if fully_qualified:
+            msg = 'URL has no schema: {}'.format(url)
+            raise ValueError(msg.encode('utf-8'))
+        schema = 'cs'
+        remaining = url
     if schema not in ('cs', 'local'):
         msg = 'URL has invalid schema: {}'.format(schema)
         raise ValueError(msg.encode('utf-8'))
@@ -167,34 +182,47 @@ def _parse_fully_qualified_url(url):
             msg = 'URL has invalid user name form: {}'.format(user)
             raise ValueError(msg.encode('utf-8'))
         user = user[1:]
-        if not _valid_user(user):
-            msg = 'URL has invalid user name: {}'.format(user)
-            raise ValueError(msg.encode('utf-8'))
         if schema == 'local':
             msg = 'local entity URL with user name: {}'.format(url)
             raise ValueError(msg.encode('utf-8'))
     elif parts_length == 2:
-        user = ''
-        series, name_revision = parts
+        user_or_series, name_revision = parts
+        if user_or_series.startswith('~'):
+            user, series = user_or_series[1:], ''
+        else:
+            user, series = '', user_or_series
+    elif (parts_length == 1) and (not fully_qualified):
+        user = series = ''
+        name_revision = parts[0]
     else:
         msg = 'URL has invalid form: {}'.format(url)
         raise ValueError(msg.encode('utf-8'))
+    # Validate the user.
+    if user and not _valid_user(user):
+        msg = 'URL has invalid user name: {}'.format(user)
+        raise ValueError(msg.encode('utf-8'))
     # Validate the series.
-    if not _valid_series(series):
+    if series and not _valid_series(series):
         msg = 'URL has invalid series: {}'.format(series)
         raise ValueError(msg.encode('utf-8'))
     # Validate name and revision.
     try:
         name, revision = name_revision.rsplit('-', 1)
     except ValueError:
-        msg = 'URL has no revision: {}'.format(url)
-        raise ValueError(msg.encode('utf-8'))
+        if fully_qualified:
+            msg = 'URL has no revision: {}'.format(url)
+            raise ValueError(msg.encode('utf-8'))
+        name, revision = name_revision, None
+    if revision is not None:
+        try:
+            revision = int(revision)
+        except ValueError:
+            if fully_qualified:
+                msg = 'URL has invalid revision: {}'.format(revision)
+                raise ValueError(msg.encode('utf-8'))
+            name, revision = name + '-' + revision, None
     if not _valid_name(name):
         msg = 'URL has invalid name: {}'.format(name)
         raise ValueError(msg.encode('utf-8'))
-    try:
-        revision = int(revision)
-    except ValueError:
-        msg = 'URL has invalid revision: {}'.format(revision)
-        raise ValueError(msg.encode('utf-8'))
+
     return schema, user, series, name, revision
