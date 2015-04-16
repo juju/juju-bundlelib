@@ -3,31 +3,10 @@
 
 from __future__ import unicode_literals
 
-import json
 import sys
 
-import yaml
-
-from jujubundlelib import changeset
-
-
-def main():
-    """Dump the changeset objects as JSON, reading the provided bundle YAML.
-
-    The YAML can be provided either from stdin or by passing a file path as
-    first argument.
-    """
-    source = sys.stdin
-    if len(sys.argv) == 2:
-        source = open(sys.argv[1])
-    bundle = yaml.safe_load(source)
-    print '['
-    for num, change in enumerate(changeset.parse(bundle)):
-        if num:
-            print ','
-        print json.dumps(change)
-    print ']'
+from jujubundlelib import cli
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(cli.get_changeset(sys.argv[1:]))
