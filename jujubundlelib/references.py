@@ -66,7 +66,7 @@ class Reference(object):
     def from_string(cls, url):
         """Given an entity URL as a string, create and return a Reference.
 
-        The given URL can be not fully qualified, meaning it can miss
+        The given URL may be not fully qualified, meaning it can miss
         the schema (in which case "cs:" is inferred), the series
         (defaulting to "") and the revision (set to None if not specified).
 
