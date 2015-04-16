@@ -7,6 +7,7 @@ import copy
 import itertools
 
 import models
+import utils
 
 
 class ChangeSet(object):
@@ -41,7 +42,7 @@ class ChangeSet(object):
 
     def is_legacy_bundle(self):
         """Report whether the bundle uses the legacy (version 3) syntax."""
-        return 'machines' not in self.bundle
+        return utils.is_legacy_bundle(self.bundle)
 
 
 def handle_services(changeset):

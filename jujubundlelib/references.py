@@ -18,9 +18,9 @@ SERIES_PATTERN = r'[a-z]+(?:[a-z-]+[a-z])?'
 NAME_PATTERN = r'[a-z][a-z0-9]*(?:-[a-z0-9]*[a-z][a-z0-9]*)*'
 
 # Define the callables used to check if entity reference components are valid.
-_valid_user = re.compile(r'^{}$'.format(USER_PATTERN)).match
-_valid_series = re.compile(r'^{}$'.format(SERIES_PATTERN)).match
-_valid_name = re.compile(r'^{}$'.format(NAME_PATTERN)).match
+valid_user = re.compile(r'^{}$'.format(USER_PATTERN)).match
+valid_name = re.compile(r'^{}$'.format(NAME_PATTERN)).match
+valid_series = re.compile(r'^{}$'.format(SERIES_PATTERN)).match
 
 # Compile the regular expression used to parse new jujucharms entity URLs.
 _jujucharms_url_expression = re.compile(r"""
@@ -198,11 +198,11 @@ def _parse_url(url, fully_qualified=False):
         msg = 'URL has invalid form: {}'.format(url)
         raise ValueError(msg.encode('utf-8'))
     # Validate the user.
-    if user and not _valid_user(user):
+    if user and not valid_user(user):
         msg = 'URL has invalid user name: {}'.format(user)
         raise ValueError(msg.encode('utf-8'))
     # Validate the series.
-    if series and not _valid_series(series):
+    if series and not valid_series(series):
         msg = 'URL has invalid series: {}'.format(series)
         raise ValueError(msg.encode('utf-8'))
     # Validate name and revision.
@@ -221,7 +221,7 @@ def _parse_url(url, fully_qualified=False):
                 msg = 'URL has invalid revision: {}'.format(revision)
                 raise ValueError(msg.encode('utf-8'))
             name, revision = name + '-' + revision, None
-    if not _valid_name(name):
+    if not valid_name(name):
         msg = 'URL has invalid name: {}'.format(name)
         raise ValueError(msg.encode('utf-8'))
 

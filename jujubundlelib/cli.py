@@ -13,7 +13,10 @@ import sys
 import yaml
 
 import jujubundlelib
-from jujubundlelib import changeset
+from jujubundlelib import (
+    changeset,
+    validate,
+)
 
 
 # Retrieve the application version.
@@ -40,7 +43,11 @@ def get_changeset(args):
         bundle = yaml.safe_load(options.infile)
     except Exception:
         return 'error: the provided bundle is not a valid YAML'
-    # TODO: validate the bundle.
+
+    # Validate the bundle object.
+    errors = validate.validate(bundle)
+    if errors:
+        return '\n'.join(errors)
 
     # Dump the changeset to stdout.
     print('[')

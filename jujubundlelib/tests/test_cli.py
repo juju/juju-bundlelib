@@ -18,6 +18,13 @@ class TestGetChangeset(helpers.BundleFileTestsMixin, unittest.TestCase):
         self.assertIsNone(error)
         self.assertTrue(mock_print.called)
 
+    def test_invalid_bundle(self, mock_print):
+        path = self.make_bundle_file("series: bad@wolf\nservices: 'oh nooooo'")
+        error = cli.get_changeset([path])
+        self.assertEqual(
+            error, 'bundle has invalid series bad@wolf\n'
+            'services spec does not appear to be well-formed')
+
     def test_invalid_yaml(self, mock_print):
         path = self.make_bundle_file(content=':')
         error = cli.get_changeset([path])

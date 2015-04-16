@@ -21,3 +21,10 @@ def string_class(cls):
         cls.__unicode__, cls.__string__ = (
             cls.__str__, lambda self: self.__unicode__().encode('utf-8'))
     return cls
+
+
+def exception_string(exception):
+    """Return the string value of an exception, valid for both python 2 and
+    python 3.
+    """
+    return exception.args[0].decode('utf-8')

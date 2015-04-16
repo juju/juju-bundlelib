@@ -38,3 +38,13 @@ class TestStringClass(unittest.TestCase):
             pyutils.string_class(non_string_class)
         self.assertEqual(
             'the given class has no __str__ method', str(ctx.exception))
+
+
+class TestExceptionString(unittest.TestCase):
+
+    def test_exception_string(self):
+        msg = 'bad-wolf'
+        e = ValueError(msg.encode('utf-8'))
+        message = pyutils.exception_string(e)
+        self.assertNotIsInstance(message, bytes)
+        self.assertEqual('bad-wolf', message)
