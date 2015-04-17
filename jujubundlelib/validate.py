@@ -159,13 +159,10 @@ def validate_services(validator, machines_used={}):
                 'service {} has invalid constraints {}'.format(
                     service_name, service['constraints']))
         num_units = service.get('num_units')
-        try:
-            num_units = int(num_units)
-        except (TypeError, ValueError):
-            validator.add_error('invalid units for service {}: {}'.format(
-                service_name, num_units))
-            validate_placements(validator, service, charm, machines_used)
-            continue
+        if not isinstance(num_units, int):
+            validator.add_error(
+                'num_units for service {} must be an integer'.format(
+                    service_name))
         if num_units < 0:
             validator.add_error(
                 'invalid units for service {}: {}'.format(
