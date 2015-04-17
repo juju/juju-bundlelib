@@ -137,22 +137,28 @@ def validate_services(validator, machines_used={}):
         validator.add_error('services spec does not appear to be well-formed')
         return
     for service_name, service in services.items():
-        try:
-            charm = references.Reference.from_string(service.get('charm'))
-        except ValueError as e:
-            validator.add_error(
-                'invalid charm specified for service {}: {}'.format(
-                    service_name, pyutils.exception_string(e)))
-            charm = None
+        charm_value = service.get('charm')
+        charm = None
+        if not charm_value:
+            validator.add_error('no charm specified for service {}'.format(
+                service_name))
         else:
-            if charm.is_local():
+            try:
+                charm = references.Reference.from_string(charm_value)
+            except ValueError as e:
                 validator.add_error(
-                    'local charms not allowed for service {}: {}'.format(
-                        service_name, charm))
-            if charm.is_bundle():
-                validator.add_error(
-                    'bundles not allowed for service {}: {}'.format(
-                        service_name, charm))
+                    'invalid charm specified for service {}: {}'.format(
+                        service_name, pyutils.exception_string(e)))
+                charm = None
+            else:
+                if charm.is_local():
+                    validator.add_error(
+                        'local charms not allowed for service {}: {}'.format(
+                            service_name, charm))
+                if charm.is_bundle():
+                    validator.add_error(
+                        'bundles not allowed for service {}: {}'.format(
+                            service_name, charm))
         if ('constraints' in service and
                 not valid_constraints(service['constraints'])):
             validator.add_error(
