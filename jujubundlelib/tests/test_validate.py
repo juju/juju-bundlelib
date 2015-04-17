@@ -406,7 +406,21 @@ class TestValidateServices(unittest.TestCase):
                     },
                 },
                 'errors': [
-                    'invalid units for service foo: a',
+                    'num_units for service foo must be an integer',
+                ],
+            },
+            {
+                'about': 'bad num_units regression: string digit',
+                'bundle': {
+                    'services': {
+                        'foo': {
+                            'charm': 'cs:precise/django-1',
+                            'num_units': '1',
+                        },
+                    },
+                },
+                'errors': [
+                    'num_units for service foo must be an integer',
                 ],
             },
             {
