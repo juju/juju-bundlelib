@@ -163,13 +163,14 @@ def validate_services(validator, machines_used={}):
             validator.add_error(
                 'num_units for service {} must be an integer'.format(
                     service_name))
-        if num_units < 0:
+            num_units = None
+        elif num_units < 0:
             validator.add_error(
                 'invalid units for service {}: {}'.format(
                     service_name, service['num_units']))
         placements = validate_placements(validator, service, charm,
                                          machines_used)
-        if len(placements) > num_units:
+        if num_units is not None and len(placements) > num_units:
             validator.add_error(
                 'too many units for service {}'.format(service_name))
         validate_options(validator, service_name, service)
