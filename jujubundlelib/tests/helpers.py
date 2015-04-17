@@ -17,6 +17,7 @@ class BundleFileTestsMixin(object):
     """Shared methods for testing Juju bundle files."""
 
     bundle_data = {
+        'series': 'precise',
         'services': {
             'wordpress': {
                 'charm': 'cs:trusty/wordpress-42',
@@ -60,11 +61,11 @@ class ValueErrorTestsMixin(object):
     """Set up some base methods for testing functions raising ValueErrors."""
 
     @contextmanager
-    def assert_value_error(self, error):
+    def assert_value_error(self, error, message=None):
         """Ensure a ValueError is raised in the context block.
 
         Also check that the exception includes the expected error message.
         """
         with self.assertRaises(ValueError) as context_manager:
             yield
-        self.assertEqual(error, context_manager.exception.args[0])
+        self.assertEqual(error, context_manager.exception.args[0], message)

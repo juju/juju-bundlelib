@@ -36,3 +36,6 @@ coverage.xml
 
 # Sphinx documentation
 docs/_build/
+
+# Editor files
+*.sw[op]
