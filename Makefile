@@ -17,18 +17,7 @@ $(DEVENVPIP):
 	@tox -e devenv
 
 $(SYSDEPS_INSTALLED): Makefile
-ifeq ($(shell command -v apt-get > /dev/null; echo $$?),0)
-	sudo apt-get install --yes $(APT_SYSDEPS)
-else
-	@echo 'System dependencies can only be installed automatically on'
-	@echo 'systems with "apt-get". On OSX you can manually use Homebrew'
-	@echo 'if there are missing dependencies corresponding to the following'
-	@echo 'Debian packages:'
-	@echo '$(APT_SYSDEPS).'
-endif
-	sudo pip2 install $(PIP_SYSDEPS)
-	touch $(SYSDEPS_INSTALLED)
-
+	sudo sh ./sysdeps.sh
 
 .PHONY: check
 check: setup
