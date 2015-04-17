@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # Copyright 2015 Canonical Ltd.
-# Licensed under the AGPLv3, see LICENCE file for details.
+# Licensed under the LGPLv3, see LICENCE file for details.
 
 from setuptools import (
     find_packages,
