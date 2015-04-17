@@ -355,7 +355,7 @@ class TestValidateServices(unittest.TestCase):
                 'bundle': {
                     'services': {
                         'foo': {
-                            'num_units': 1,    
+                            'num_units': 1,
                         },
                     },
                 },
