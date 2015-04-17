@@ -351,6 +351,19 @@ class TestValidateServices(unittest.TestCase):
                 ],
             },
             {
+                'about': 'bad charm - regression: no charm',
+                'bundle': {
+                    'services': {
+                        'foo': {
+                            'num_units': 1,
+                        },
+                    },
+                },
+                'errors': [
+                    'no charm specified for service foo',
+                ],
+            },
+            {
                 'about': 'bad charm - parsing',
                 'bundle': {
                     'services': {
