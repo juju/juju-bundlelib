@@ -44,8 +44,8 @@ def validate(bundle):
         return ['machines spec does not appear to be well-formed']
     machines_used = dict((i, False) for i in machines)
     services = bundle.get('services')
-    if services is None:
-        return ['services spec is required']
+    if not services:
+        return ['bundle does not define any services']
 
     series = validator.bundle.get('series')
     if series and not valid_series(series):

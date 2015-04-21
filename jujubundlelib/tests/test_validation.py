@@ -8,97 +8,97 @@ import unittest
 
 from jujubundlelib import (
     references,
-    validate,
+    validation,
 )
 
 
 class TestBundleValidator(unittest.TestCase):
 
     def test_errors(self):
-        validator = validate.BundleValidator({})
+        validator = validation.BundleValidator({})
         self.assertEqual(validator.errors(), [])
         validator.add_error('bad-wolf')
         self.assertEqual(validator.errors(), ['bad-wolf'])
 
     def test_is_legacy_bundle(self):
-        validator = validate.BundleValidator({'machines': {}})
+        validator = validation.BundleValidator({'machines': {}})
         self.assertFalse(validator.is_legacy_bundle())
-        validator = validate.BundleValidator({'services': {}})
+        validator = validation.BundleValidator({'services': {}})
         self.assertTrue(validator.is_legacy_bundle())
 
 
 class TestValidate(unittest.TestCase):
 
-    @mock.patch('jujubundlelib.validate.validate_machines')
-    @mock.patch('jujubundlelib.validate.validate_services')
-    @mock.patch('jujubundlelib.validate.validate_relations')
-    @mock.patch('jujubundlelib.validate.validate_options')
-    def test_validate(self, mock_machines, mock_services,
-                      mock_relations, mock_options):
+    def test_validate(self):
         bundle = {
             'series': 'precise',
-            'services': {},
+            'services': {
+                'django': {'charm': 'cs:trusty/django-42', 'num_units': 1},
+            },
         }
-        self.assertEqual(validate.validate(bundle), [])
-        self.assertTrue(mock_machines.called_once())
-        self.assertTrue(mock_services.called_once())
-        self.assertTrue(mock_relations.called_once())
-        self.assertTrue(mock_options.called_once())
+        self.assertEqual([], validation.validate(bundle))
+
+    def test_no_services(self):
+        bundle = {'services': {}}
+        expected_errors = ['bundle does not define any services']
+        self.assertEqual(expected_errors, validation.validate(bundle))
+
+    def test_no_services_section(self):
+        bundle = {}
+        expected_errors = ['bundle does not define any services']
+        self.assertEqual(expected_errors, validation.validate(bundle))
 
     def test_no_series(self):
         bundle = {
-            'services': {},
+            'services': {
+                'django': {'charm': 'cs:trusty/django-42', 'num_units': 1},
+            },
         }
-        self.assertEqual(validate.validate(bundle), [])
-
-    def test_no_services(self):
-        bundle = {}
-        self.assertEqual(validate.validate(bundle), [
-            'services spec is required'
-        ])
+        self.assertEqual([], validation.validate(bundle))
 
     def test_bad_series(self):
         bundle = {
             'series': 'bad@wolf',
-            'services': {},
+            'services': {
+                'django': {'charm': 'cs:trusty/django-42', 'num_units': 1},
+            },
         }
-        self.assertEqual(validate.validate(bundle), [
-            'bundle has invalid series bad@wolf',
-        ])
+        expected_errors = ['bundle has invalid series bad@wolf']
+        self.assertEqual(expected_errors, validation.validate(bundle))
 
     def test_bad_bundle(self):
-        self.assertEqual(validate.validate('bad-wolf'), [
-            'bundle does not appear to be a bundle',
-        ])
+        expected_errors = ['bundle does not appear to be a bundle']
+        self.assertEqual(expected_errors, validation.validate('bad-wolf'))
 
     def test_machine_used(self):
         bundle = {
             'series': 'precise',
-            'services': {},
+            'services': {
+                'django': {'charm': 'cs:trusty/django-42', 'num_units': 1},
+            },
             'machines': {
                 '0': {},
             },
         }
-        self.assertEqual(validate.validate(bundle), [
-            'machine 0 not referred to by a placement directive',
-        ])
+        expected_errors = [
+            'machine 0 not referred to by a placement directive']
+        self.assertEqual(expected_errors, validation.validate(bundle))
 
     def test_bad_machines(self):
         bundle = {
             'services': {},
             'machines': 'bad-wolf',
         }
-        self.assertEqual(validate.validate(bundle), [
-            'machines spec does not appear to be well-formed',
-        ])
+        expected_errors = ['machines spec does not appear to be well-formed']
+        self.assertEqual(expected_errors, validation.validate(bundle))
 
 
 class TestValidPartials(unittest.TestCase):
 
     def test_valid_series(self):
-        self.assertFalse(validate.valid_series('a:b'))
-        self.assertFalse(validate.valid_series('bundle'))
-        self.assertTrue(validate.valid_series('precise'))
+        self.assertFalse(validation.valid_series('a:b'))
+        self.assertFalse(validation.valid_series('bundle'))
+        self.assertTrue(validation.valid_series('precise'))
 
     def test_valid_constraints(self):
         good_constraints = (
@@ -107,7 +107,7 @@ class TestValidPartials(unittest.TestCase):
             'mem=bar    arch=42',
         )
         for constraint in good_constraints:
-            self.assertTrue(validate.valid_constraints(constraint))
+            self.assertTrue(validation.valid_constraints(constraint))
 
         bad_constraints = (
             'mem',
@@ -117,7 +117,7 @@ class TestValidPartials(unittest.TestCase):
             '==',
         )
         for constraint in bad_constraints:
-            self.assertFalse(validate.valid_constraints(constraint))
+            self.assertFalse(validation.valid_constraints(constraint))
 
 
 class TestValidateMachines(unittest.TestCase):
@@ -171,8 +171,8 @@ class TestValidateMachines(unittest.TestCase):
             },
         )
         for test in tests:
-            validator = validate.BundleValidator(test['bundle'])
-            validate.validate_machines(validator)
+            validator = validation.BundleValidator(test['bundle'])
+            validation.validate_machines(validator)
             self.assertEqual(validator.errors(), [], msg=test['about'])
 
     def test_validate_machines_failure(self):
@@ -240,15 +240,15 @@ class TestValidateMachines(unittest.TestCase):
             },
         )
         for test in tests:
-            validator = validate.BundleValidator(test['bundle'])
-            validate.validate_machines(validator)
+            validator = validation.BundleValidator(test['bundle'])
+            validation.validate_machines(validator)
             self.assertEqual(validator.errors(), test['errors'],
                              msg=test['about'])
 
 
 class TestValidateServices(unittest.TestCase):
 
-    @mock.patch('jujubundlelib.validate.validate_placement')
+    @mock.patch('jujubundlelib.validation.validate_placement')
     def test_validate_services_success(self, mock_placement):
         tests = (
             {
@@ -333,12 +333,12 @@ class TestValidateServices(unittest.TestCase):
             },
         )
         for test in tests:
-            validator = validate.BundleValidator(test['bundle'])
-            validate.validate_services(
+            validator = validation.BundleValidator(test['bundle'])
+            validation.validate_services(
                 validator, machines_used=test['machines_used']['in'])
             self.assertEqual(validator.errors(), [], msg=test['about'])
 
-    @mock.patch('jujubundlelib.validate.validate_placement')
+    @mock.patch('jujubundlelib.validation.validate_placement')
     def test_validate_services_failure(self, mock_placement):
         tests = (
             {
@@ -484,8 +484,8 @@ class TestValidateServices(unittest.TestCase):
             },
         )
         for test in tests:
-            validator = validate.BundleValidator(test['bundle'])
-            validate.validate_services(validator)
+            validator = validation.BundleValidator(test['bundle'])
+            validation.validate_services(validator)
             errors = validator.errors()
             msg = '{}: {} != {}'.format(test['about'], test['errors'], errors)
             self.assertEqual(test['errors'], errors, msg=msg)
@@ -521,15 +521,15 @@ class TestValidatePlacement(unittest.TestCase):
             },
         )
         for test in tests:
-            validator = validate.BundleValidator({
+            validator = validation.BundleValidator({
                 'services': {
                     'foo': {
                         'num_units': 1,
                     },
                 },
             })
-            validate.validate_placement(validator, test['placement'], None,
-                                        {})
+            validation.validate_placement(
+                validator, test['placement'], None, {})
             self.assertEqual(validator.errors(), [], msg=test['about'])
 
     def test_validate_placement_v3_failure(self):
@@ -580,15 +580,15 @@ class TestValidatePlacement(unittest.TestCase):
             }
         )
         for test in tests:
-            validator = validate.BundleValidator({
+            validator = validation.BundleValidator({
                 'services': {
                     'foo': {
                         'num_units': 1,
                     },
                 },
             })
-            validate.validate_placement(validator, test['placement'], None,
-                                        {})
+            validation.validate_placement(
+                validator, test['placement'], None, {})
             self.assertEqual(validator.errors(), test['errors'],
                              msg=test['about'])
 
@@ -627,7 +627,7 @@ class TestValidatePlacement(unittest.TestCase):
         )
         for test in tests:
             machines_used = {0: False}
-            validator = validate.BundleValidator({
+            validator = validation.BundleValidator({
                 'services': {
                     'foo': {
                         'num_units': 1,
@@ -639,8 +639,8 @@ class TestValidatePlacement(unittest.TestCase):
                     },
                 },
             })
-            validate.validate_placement(validator, test['placement'],
-                                        test.get('charm'), machines_used)
+            validation.validate_placement(
+                validator, test['placement'], test.get('charm'), machines_used)
             self.assertEqual(validator.errors(), [], msg=test['about'])
             if 'expected_machines_used' in test:
                 self.assertEqual(machines_used,
@@ -702,7 +702,7 @@ class TestValidatePlacement(unittest.TestCase):
             },
         )
         for test in tests:
-            validator = validate.BundleValidator({
+            validator = validation.BundleValidator({
                 'services': {
                     'foo': {
                         'num_units': 1,
@@ -714,7 +714,7 @@ class TestValidatePlacement(unittest.TestCase):
                     },
                 },
             })
-            validate.validate_placement(
+            validation.validate_placement(
                 validator, test['placement'], test.get('charm'), {})
             self.assertEqual(validator.errors(), test['errors'],
                              msg=test['about'])
@@ -723,7 +723,7 @@ class TestValidatePlacement(unittest.TestCase):
 class TestValidateRelations(unittest.TestCase):
 
     def test_validate_realtions_success(self):
-        success = validate.BundleValidator({
+        success = validation.BundleValidator({
             'services': {
                 'foo': {},
                 'bar': {},
@@ -732,11 +732,11 @@ class TestValidateRelations(unittest.TestCase):
                 ['foo:a', 'bar:a'],
             ],
         })
-        validate.validate_relations(success)
+        validation.validate_relations(success)
         self.assertEqual(success.errors(), [])
 
     def test_validate_relations_failure(self):
-        failure = validate.BundleValidator({
+        failure = validation.BundleValidator({
             'services': {
                 'foo': {},
                 'bar': {},
@@ -747,9 +747,9 @@ class TestValidateRelations(unittest.TestCase):
                 ['foo:a', 'baz:a'],
             ],
         })
-        validate.validate_relations(failure)
+        validation.validate_relations(failure)
         failure.bundle['relations'] = 'bad-wolf'
-        validate.validate_relations(failure)
+        validation.validate_relations(failure)
         self.assertEqual(failure.errors(), [
             'relation bad-wolf is malformed',
             'endpoint foo is malformed; name and interface required',
@@ -762,7 +762,7 @@ class TestValidateRelations(unittest.TestCase):
 class TestValidateOptions(unittest.TestCase):
 
     def test_validate_options(self):
-        success = validate.BundleValidator({
+        success = validation.BundleValidator({
             'services': {
                 'foo': {
                     'options': {
@@ -772,10 +772,10 @@ class TestValidateOptions(unittest.TestCase):
                 'bar': {},
             },
         })
-        validate.validate_options(success, 'foo',
-                                  success.bundle['services']['foo'])
+        validation.validate_options(
+            success, 'foo', success.bundle['services']['foo'])
         self.assertEqual(success.errors(), [])
-        failure = validate.BundleValidator({
+        failure = validation.BundleValidator({
             'services': {
                 'foo': {
                     'options': "bad-wolf"
@@ -783,7 +783,7 @@ class TestValidateOptions(unittest.TestCase):
                 'bar': {},
             },
         })
-        validate.validate_options(failure, 'foo',
-                                  failure.bundle['services']['foo'])
-        self.assertEqual(failure.errors(),
-                         ['service foo has malformed options'])
+        validation.validate_options(
+            failure, 'foo', failure.bundle['services']['foo'])
+        self.assertEqual(
+            failure.errors(), ['service foo has malformed options'])

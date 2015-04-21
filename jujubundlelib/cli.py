@@ -15,7 +15,7 @@ import yaml
 import jujubundlelib
 from jujubundlelib import (
     changeset,
-    validate,
+    validation,
 )
 
 
@@ -45,7 +45,7 @@ def get_changeset(args):
         return 'error: the provided bundle is not a valid YAML'
 
     # Validate the bundle object.
-    errors = validate.validate(bundle)
+    errors = validation.validate(bundle)
     if errors:
         return '\n'.join(errors)
 
