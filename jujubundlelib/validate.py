@@ -12,8 +12,9 @@ import utils
 
 
 class BundleValidator(object):
-    """Maintain a state of bundle validation, including the bundle object
-    and the errors list.
+    """Maintain a state of bundle validation.
+
+    The state includes the bundle dict and the errors list.
     """
 
     def __init__(self, bundle):
@@ -93,9 +94,7 @@ def valid_constraints(constraints):
 
 
 def validate_machines(validator):
-    """Validate the machines object (if it exists) within the context of the
-    bundle.
-    """
+    """Validate the machines object within the context of the bundle."""
     for machine_id, machine in validator.bundle.get('machines', {}).items():
         try:
             int_id = int(machine_id)
@@ -137,22 +136,28 @@ def validate_services(validator, machines_used={}):
         validator.add_error('services spec does not appear to be well-formed')
         return
     for service_name, service in services.items():
-        try:
-            charm = references.Reference.from_string(service.get('charm'))
-        except ValueError as e:
-            validator.add_error(
-                'invalid charm specified for service {}: {}'.format(
-                    service_name, pyutils.exception_string(e)))
+        charm_url = service.get('charm')
+        if charm_url is None:
             charm = None
+            validator.add_error(
+                'no charm specified for service {}'.format(service_name))
         else:
-            if charm.is_local():
+            try:
+                charm = references.Reference.from_string(charm_url)
+            except ValueError as e:
                 validator.add_error(
-                    'local charms not allowed for service {}: {}'.format(
-                        service_name, charm))
-            if charm.is_bundle():
-                validator.add_error(
-                    'bundles not allowed for service {}: {}'.format(
-                        service_name, charm))
+                    'invalid charm specified for service {}: {}'.format(
+                        service_name, pyutils.exception_string(e)))
+                charm = None
+            else:
+                if charm.is_local():
+                    validator.add_error(
+                        'local charms not allowed for service {}: {}'.format(
+                            service_name, charm))
+                if charm.is_bundle():
+                    validator.add_error(
+                        'bundles not allowed for service {}: {}'.format(
+                            service_name, charm))
         if ('constraints' in service and
                 not valid_constraints(service['constraints'])):
             validator.add_error(
@@ -190,8 +195,10 @@ def validate_placements(validator, service, charm, machines_used):
 
 
 def validate_placement(validator, placement, charm, machines_used):
-    """Validate a placement directive against other services and, if
-    applicable, other machines within the bundle.
+    """Validate a placement directive against other services.
+
+    If applicable, also validate the placement of other machines within the
+    bundle.
 
     Note that some of the logic within this differs between legacy and
     version 4 bundles.
