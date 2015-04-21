@@ -471,12 +471,24 @@ class TestValidateServices(unittest.TestCase):
                     'too many units for service foo',
                 ],
             },
+            {
+                'about': 'no charm specified',
+                'bundle': {
+                    'services': {
+                        'foo': {
+                            'num_units': 1,
+                        },
+                    },
+                },
+                'errors': ['no charm specified for service foo'],
+            },
         )
         for test in tests:
             validator = validate.BundleValidator(test['bundle'])
             validate.validate_services(validator)
-            self.assertEqual(validator.errors(), test['errors'],
-                             msg=test['about'])
+            errors = validator.errors()
+            msg = '{}: {} != {}'.format(test['about'], test['errors'], errors)
+            self.assertEqual(test['errors'], errors, msg=msg)
 
 
 class TestValidatePlacement(unittest.TestCase):
