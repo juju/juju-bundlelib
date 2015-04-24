@@ -111,7 +111,7 @@ def normalize_machines(machines):
     try:
         for k, v in machines.items():
             normalized_machines[int(k)] = v
-    except (AttributeError, ValueError):
+    except (TypeError, AttributeError, ValueError):
         msg = 'Malformed machines {}'.format(machines)
         raise ValueError(msg.encode('utf-8'))
     return normalized_machines

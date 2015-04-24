@@ -163,5 +163,7 @@ class TestNormalizeMachines(
         self.assertEqual(models.normalize_machines(expected), expected)
 
     def test_failure(self):
+        with self.assert_value_error(b'Malformed machines None'):
+            models.normalize_machines(None)
         with self.assert_value_error(b'Malformed machines bad-wolf'):
             models.normalize_machines('bad-wolf')
