@@ -5,7 +5,10 @@ from __future__ import unicode_literals
 
 import unittest
 
-from jujubundlelib import references
+from jujubundlelib import (
+    pyutils,
+    references,
+)
 from jujubundlelib.tests import helpers
 
 
@@ -97,6 +100,13 @@ class TestReference(unittest.TestCase):
         # The reference id is correctly returned.
         for ref, expected_value in self.representation_tests:
             self.assertEqual(expected_value, ref.id())
+
+    def test_copy(self):
+        # The reference can be correctly copied.
+        ref = make_reference()
+        copied_ref = ref.copy()
+        self.assertIsNot(ref, copied_ref)
+        self.assertEqual(ref, copied_ref)
 
     def test_jujucharms_id(self):
         # It is possible to return the reference identifier in jujucharms.com.
@@ -200,6 +210,62 @@ class TestReference(unittest.TestCase):
         # charmworld id concept.
         ref = make_reference()
         self.assertIsNone(ref.charmworld_id)
+
+    def test_is_fully_qualified(self):
+        # True is returned if the reference is fully qualified.
+        self.assertTrue(make_reference().is_fully_qualified())
+        self.assertTrue(make_reference(schema='local').is_fully_qualified())
+        self.assertTrue(make_reference(user='').is_fully_qualified())
+        self.assertTrue(make_reference(revision=0).is_fully_qualified())
+
+    def test_is_not_fully_qualified(self):
+        # False is returned if the reference is not fully qualified.
+        self.assertFalse(make_reference(series='').is_fully_qualified())
+        self.assertFalse(make_reference(revision=None).is_fully_qualified())
+
+
+class TestReferenceSimilar(unittest.TestCase):
+
+    def test_similar_references(self):
+        # True is returned if the references are similar.
+        ref = make_reference()
+        self.assertTrue(ref.similar(make_reference()))
+        self.assertTrue(ref.similar(make_reference(series='utopic')))
+        self.assertTrue(
+            ref.similar(make_reference(series='trusty', revision=0)))
+
+    def test_similar_promulgated_references(self):
+        # True is returned if the promulgated references are similar.
+        ref = make_reference(user='')
+        self.assertTrue(ref.similar(ref))
+        self.assertTrue(ref.similar(make_reference(user='', series='utopic')))
+        self.assertTrue(
+            ref.similar(make_reference(user='', series='trusty', revision=0)))
+
+    def test_different_references(self):
+        # False is returned if the references do not share the same schema,
+        # user or name.
+        ref = make_reference()
+        self.assertFalse(ref.similar(make_reference(schema='local')))
+        self.assertFalse(ref.similar(make_reference(user='who')))
+        self.assertFalse(ref.similar(make_reference(name='django')))
+
+    def test_different_promulgated_references(self):
+        # False is returned if the promulgated references do not share the
+        # same schema, user or name.
+        ref = make_reference(user='')
+        self.assertFalse(ref.similar(make_reference(schema='local', user='')))
+        self.assertFalse(ref.similar(make_reference(user='who')))
+        self.assertFalse(ref.similar(make_reference(user='', name='django')))
+
+    def test_different_types(self):
+        # A type error is returned if an unsupported type is provided.
+        ref = make_reference()
+        with self.assertRaises(TypeError) as ctx:
+            ref.similar(42)
+        self.assertEqual(
+            'cannot compare unsupported type int',
+            pyutils.exception_string(ctx.exception))
 
 
 class TestReferenceFromFullyQualifiedUrl(
