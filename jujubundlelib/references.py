@@ -128,6 +128,26 @@ class Reference(object):
         """Return the reference URL as a string."""
         return '{}:{}'.format(self.schema, self.path())
 
+    def similar(self, other):
+        """Report whether the other reference refers to a similar charm.
+
+        Two references are considered similar if they share the same schema,
+        user and name.
+        Raise a TypeError if the given reference is not a Reference instance.
+        """
+        if not isinstance(other, self.__class__):
+            msg = 'cannot compare unsupported type {}'.format(
+                other.__class__.__name__)
+            raise TypeError(msg.encode('utf-8'))
+        return (
+            (self.schema, self.user, self.name) ==
+            (other.schema, other.user, other.name))
+
+    def copy(self):
+        """Copy this reference."""
+        return self.__class__(
+            self.schema, self.user, self.series, self.name, self.revision)
+
     def jujucharms_id(self):
         """Return the identifier of this reference in jujucharms.com."""
         user_part = 'u/{}/'.format(self.user) if self.user else ''
@@ -149,6 +169,13 @@ class Reference(object):
     def is_local(self):
         """Return True if this refers to a local entity, False otherwise."""
         return self.schema == 'local'
+
+    def is_fully_qualified(self):
+        """Report whether this reference is fully qualified.
+
+        A fully qualified reference includes its schema, series and revision.
+        """
+        return self.schema and self.series and (self.revision is not None)
 
 
 def _parse_url(url, fully_qualified=False):
