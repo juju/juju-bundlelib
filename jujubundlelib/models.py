@@ -103,3 +103,15 @@ def parse_v4_unit_placement(placement_str):
             msg = 'unit in placement {} must be digit'.format(placement_str)
             raise ValueError(msg.encode('utf-8'))
     return UnitPlacement(container, machine, service, unit)
+
+
+def normalize_machines(machines):
+    """Normalize the machines spec to use integer keys."""
+    normalized_machines = {}
+    try:
+        for k, v in machines.items():
+            normalized_machines[int(k)] = v
+    except (AttributeError, ValueError):
+        msg = 'Malformed machines {}'.format(machines)
+        raise ValueError(msg.encode('utf-8'))
+    return normalized_machines

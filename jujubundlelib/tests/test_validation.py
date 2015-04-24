@@ -171,8 +171,9 @@ class TestValidateMachines(unittest.TestCase):
             },
         )
         for test in tests:
+            machines = test['bundle']['machines'] if 'machines' in test['bundle'] else {}
             validator = validation.BundleValidator(test['bundle'])
-            validation.validate_machines(validator)
+            validation.validate_machines(validator, machines)
             self.assertEqual(validator.errors(), [], msg=test['about'])
 
     def test_validate_machines_failure(self):
@@ -240,8 +241,9 @@ class TestValidateMachines(unittest.TestCase):
             },
         )
         for test in tests:
+            machines = test['bundle']['machines'] if 'machines' in test['bundle'] else {}
             validator = validation.BundleValidator(test['bundle'])
-            validation.validate_machines(validator)
+            validation.validate_machines(validator, machines)
             self.assertEqual(validator.errors(), test['errors'],
                              msg=test['about'])
 
@@ -332,10 +334,14 @@ class TestValidateServices(unittest.TestCase):
                 }
             },
         )
+        machines = {
+            0: {},
+        }
         for test in tests:
             validator = validation.BundleValidator(test['bundle'])
             validation.validate_services(
-                validator, machines_used=test['machines_used']['in'])
+                validator, machines,
+                machines_used=test['machines_used']['in'])
             self.assertEqual(validator.errors(), [], msg=test['about'])
 
     @mock.patch('jujubundlelib.validation.validate_placement')
@@ -483,9 +489,12 @@ class TestValidateServices(unittest.TestCase):
                 'errors': ['no charm specified for service foo'],
             },
         )
+        machines = {
+            0: {},
+        }
         for test in tests:
             validator = validation.BundleValidator(test['bundle'])
-            validation.validate_services(validator)
+            validation.validate_services(validator, machines)
             errors = validator.errors()
             msg = '{}: {} != {}'.format(test['about'], test['errors'], errors)
             self.assertEqual(test['errors'], errors, msg=msg)
@@ -529,7 +538,7 @@ class TestValidatePlacement(unittest.TestCase):
                 },
             })
             validation.validate_placement(
-                validator, test['placement'], None, {})
+                validator, test['placement'], None, {}, {})
             self.assertEqual(validator.errors(), [], msg=test['about'])
 
     def test_validate_placement_v3_failure(self):
@@ -588,7 +597,7 @@ class TestValidatePlacement(unittest.TestCase):
                 },
             })
             validation.validate_placement(
-                validator, test['placement'], None, {})
+                validator, test['placement'], None, {}, {})
             self.assertEqual(validator.errors(), test['errors'],
                              msg=test['about'])
 
@@ -608,6 +617,10 @@ class TestValidatePlacement(unittest.TestCase):
                 'expected_machines_used': {0: True},
             },
             {
+                'about': 'v4: new machine',
+                'placement': 'new',
+            },
+            {
                 'about': 'v4: container, service, no unit',
                 'placement': 'lxc:foo',
             },
@@ -620,11 +633,20 @@ class TestValidatePlacement(unittest.TestCase):
                 'placement': 'lxc:0',
             },
             {
+                'about': 'v4: container, new machine',
+                'placement': 'lxc:new',
+            },
+            {
                 'about': 'v4: with charm',
                 'placement': '0',
                 'charm': references.Reference.from_string('cs:precise/foo-1'),
             },
         )
+        machines = {
+            0: {
+                'series': 'precise',
+            },
+        }
         for test in tests:
             machines_used = {0: False}
             validator = validation.BundleValidator({
@@ -640,7 +662,7 @@ class TestValidatePlacement(unittest.TestCase):
                 },
             })
             validation.validate_placement(
-                validator, test['placement'], test.get('charm'), machines_used)
+                validator, test['placement'], test.get('charm'), machines, machines_used)
             self.assertEqual(validator.errors(), [], msg=test['about'])
             if 'expected_machines_used' in test:
                 self.assertEqual(machines_used,
@@ -702,20 +724,21 @@ class TestValidatePlacement(unittest.TestCase):
             },
         )
         for test in tests:
+            machines = {
+                0: {
+                    'series': 'precise',
+                }
+            }
             validator = validation.BundleValidator({
                 'services': {
                     'foo': {
                         'num_units': 1,
                     },
                 },
-                'machines': {
-                    0: {
-                        'series': 'precise',
-                    },
-                },
+                'machines': machines,
             })
             validation.validate_placement(
-                validator, test['placement'], test.get('charm'), {})
+                validator, test['placement'], test.get('charm'), machines, {})
             self.assertEqual(validator.errors(), test['errors'],
                              msg=test['about'])
 
@@ -752,7 +775,6 @@ class TestValidateRelations(unittest.TestCase):
         validation.validate_relations(failure)
         self.assertEqual(failure.errors(), [
             'relation bad-wolf is malformed',
-            'endpoint foo is malformed; name and interface required',
             'relation {} refers to a non-existant service baz'.format(
                 ['foo:a', 'baz:a']),
             'relations bad-wolf are malformed',

@@ -39,8 +39,9 @@ def validate(bundle):
     if not isinstance(bundle, collections.Mapping):
         return ['bundle does not appear to be a bundle']
     validator = BundleValidator(bundle)
-    machines = bundle.get('machines', {})
-    if not isinstance(machines, collections.Mapping):
+    try:
+        machines = models.normalize_machines(bundle.get('machines', {}))
+    except ValueError:
         return ['machines spec does not appear to be well-formed']
     machines_used = dict((i, False) for i in machines)
     services = bundle.get('services')
@@ -51,8 +52,8 @@ def validate(bundle):
     if series and not valid_series(series):
         validator.add_error(
             'bundle has invalid series {}'.format(series))
-    validate_machines(validator)
-    validate_services(validator,
+    validate_machines(validator, machines)
+    validate_services(validator, machines,
                       machines_used=machines_used)
     validate_relations(validator)
 
@@ -93,9 +94,9 @@ def valid_constraints(constraints):
     return True
 
 
-def validate_machines(validator):
+def validate_machines(validator, machines):
     """Validate the machines object within the context of the bundle."""
-    for machine_id, machine in validator.bundle.get('machines', {}).items():
+    for machine_id, machine in machines.items():
         try:
             int_id = int(machine_id)
             if int_id < 0:
@@ -124,7 +125,7 @@ def validate_machines(validator):
                     machine_id, machine['annotations']))
 
 
-def validate_services(validator, machines_used={}):
+def validate_services(validator, machines, machines_used={}):
     """Validate each service within the bundle.
 
     if machines_used is supplied, then machines in the dict will be marked
@@ -174,14 +175,14 @@ def validate_services(validator, machines_used={}):
                 'invalid units for service {}: {}'.format(
                     service_name, service['num_units']))
         placements = validate_placements(validator, service, charm,
-                                         machines_used)
+                                         machines, machines_used)
         if num_units is not None and len(placements) > num_units:
             validator.add_error(
                 'too many units for service {}'.format(service_name))
         validate_options(validator, service_name, service)
 
 
-def validate_placements(validator, service, charm, machines_used):
+def validate_placements(validator, service, charm, machines, machines_used):
     """Validate all placement directives for a given service"""
     if 'to' in service:
         placements = service['to']
@@ -189,12 +190,12 @@ def validate_placements(validator, service, charm, machines_used):
             placements = [placements]
         for placement in placements:
             validate_placement(validator, placement, charm,
-                               machines_used)
+                               machines, machines_used)
         return placements
     return []
 
 
-def validate_placement(validator, placement, charm, machines_used):
+def validate_placement(validator, placement, charm, machines, machines_used):
     """Validate a placement directive against other services.
 
     If applicable, also validate the placement of other machines within the
@@ -225,15 +226,16 @@ def validate_placement(validator, placement, charm, machines_used):
                     'units in service {}'.format(
                         placement, unit_placement.service))
     elif unit_placement.machine:
-        if not validator.is_legacy_bundle():
+        if (not validator.is_legacy_bundle() and
+                unit_placement.machine != 'new'):
             machine = int(unit_placement.machine)
-            if machine not in validator.bundle['machines']:
+            if machine not in machines:
                 validator.add_error(
                     'placement {} refers to a non-existant machine '
                     '{}'.format(placement, unit_placement.machine))
             else:
                 if charm:
-                    machine_series = validator.bundle['machines'][machine].get(
+                    machine_series = machines[machine].get(
                         'series', validator.bundle.get('series'))
                     if machine_series != charm.series:
                         validator.add_error(
@@ -258,9 +260,7 @@ def validate_relations(validator):
             try:
                 service, _ = endpoint.split(':')
             except ValueError:
-                validator.add_error('endpoint {} is malformed; name and '
-                                    'interface required'.format(endpoint))
-                continue
+                service = endpoint
             if service not in validator.bundle['services']:
                 validator.add_error(
                     'relation {} refers to a non-existant service '
