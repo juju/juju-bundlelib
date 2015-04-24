@@ -1,5 +1,6 @@
 # Copyright 2015 Canonical Ltd.
 # Licensed under the AGPLv3, see LICENCE file for details.
+include sysdeps.mk
 
 PYTHON = python
 # Since the python-tox package in Ubuntu uses Python 3, use pip to install tox
@@ -11,8 +12,6 @@ DEVENV = devenv
 DEVENVPIP = $(DEVENV)/bin/pip
 
 .DEFAULT_GOAL := setup
-
-include sysdeps.mk
 
 $(DEVENVPIP):
 	@tox -e devenv
