@@ -171,7 +171,8 @@ class TestValidateMachines(unittest.TestCase):
             },
         )
         for test in tests:
-            machines = test['bundle']['machines'] if 'machines' in test['bundle'] else {}
+            machines = test['bundle']['machines'] if \
+                'machines' in test['bundle'] else {}
             validator = validation.BundleValidator(test['bundle'])
             validation.validate_machines(validator, machines)
             self.assertEqual(validator.errors(), [], msg=test['about'])
@@ -241,7 +242,8 @@ class TestValidateMachines(unittest.TestCase):
             },
         )
         for test in tests:
-            machines = test['bundle']['machines'] if 'machines' in test['bundle'] else {}
+            machines = test['bundle']['machines'] if \
+                'machines' in test['bundle'] else {}
             validator = validation.BundleValidator(test['bundle'])
             validation.validate_machines(validator, machines)
             self.assertEqual(validator.errors(), test['errors'],
@@ -662,7 +664,8 @@ class TestValidatePlacement(unittest.TestCase):
                 },
             })
             validation.validate_placement(
-                validator, test['placement'], test.get('charm'), machines, machines_used)
+                validator, test['placement'], test.get('charm'), machines,
+                machines_used)
             self.assertEqual(validator.errors(), [], msg=test['about'])
             if 'expected_machines_used' in test:
                 self.assertEqual(machines_used,
