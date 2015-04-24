@@ -1,8 +1,8 @@
 # Copyright 2015 Canonical Ltd.
 # Licensed under the AGPLv3, see LICENCE file for details.
+include sysdeps.mk
 
 PYTHON = python
-APT_SYSDEPS = python-dev python-pip python-setuptools
 # Since the python-tox package in Ubuntu uses Python 3, use pip to install tox
 # instead. This also works on OSX where tox is not present in Homebrew.
 PIP_SYSDEPS = tox
@@ -16,7 +16,7 @@ DEVENVPIP = $(DEVENV)/bin/pip
 $(DEVENVPIP):
 	@tox -e devenv
 
-$(SYSDEPS_INSTALLED): Makefile
+$(SYSDEPS_INSTALLED): sysdeps.mk
 ifeq ($(shell command -v apt-get > /dev/null; echo $$?),0)
 	sudo apt-get install --yes $(APT_SYSDEPS)
 else
