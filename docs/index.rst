@@ -4,7 +4,7 @@
    contain the root `toctree` directive.
 
 Welcome to Juju Bundle Library's documentation!
-======================================
+===============================================
 
 Contents:
 
