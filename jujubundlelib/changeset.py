@@ -98,13 +98,15 @@ def handle_machines(changeset):
 def handle_relations(changeset):
     """Populate the change set with addRelation changes."""
     for relation in changeset.bundle.get('relations', []):
-        relations = [models.Relation(*i.split(':')) for i in relation]
+        relations = [models.Relation(*i.split(':')) if ':' in i
+                     else models.Relation(i, '') for i in relation]
         changeset.send({
             'id': 'addRelation-{}'.format(changeset.next_action()),
             'method': 'addRelation',
             'args': [
-                '${}:{}'.format(
-                    changeset.services_added[rel.name], rel.interface)
+                '${}'.format(
+                    changeset.services_added[rel.name]) +
+                (':{}'.format(rel.interface) if rel.interface else '')
                 for rel in relations
             ],
             'requires': [changeset.services_added[rel.name] for
@@ -141,7 +143,6 @@ def handle_units(changeset):
 def _handle_units_placement(changeset, units, records):
     """Ensure that requires and placement directives are taken into account."""
     for service_name, service in changeset.bundle['services'].items():
-        # Add the addUnits record for each unit.
         placement_directives = service.get('to', [])
         if not isinstance(placement_directives, (list, tuple)):
             placement_directives = [placement_directives]

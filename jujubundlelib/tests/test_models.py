@@ -135,3 +135,35 @@ class TestParseV4UnitPlacement(
         for test in tests:
             with self.assert_value_error(test['error'], test['about']):
                 models.parse_v4_unit_placement(test['placement'])
+
+
+class TestNormalizeMachines(
+        helpers.ValueErrorTestsMixin, unittest.TestCase):
+
+    def test_success(self):
+        provided = {
+            '0': {
+                'series': 'precise',
+            },
+            '1': {
+                'series': 'trusty',
+                'constraints': 'mem=foo',
+            },
+        }
+        expected = {
+            0: {
+                'series': 'precise',
+            },
+            1: {
+                'series': 'trusty',
+                'constraints': 'mem=foo',
+            },
+        }
+        self.assertEqual(models.normalize_machines(provided), expected)
+        self.assertEqual(models.normalize_machines(expected), expected)
+
+    def test_failure(self):
+        with self.assert_value_error(b'Malformed machines None'):
+            models.normalize_machines(None)
+        with self.assert_value_error(b'Malformed machines bad-wolf'):
+            models.normalize_machines('bad-wolf')
