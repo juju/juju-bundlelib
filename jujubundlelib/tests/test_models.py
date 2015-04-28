@@ -14,19 +14,19 @@ class TestParseV3UnitPlacement(
 
     def test_success(self):
         self.assertEqual(
-            models.UnitPlacement('', '', '', ''),
+            models.UnitPlacement('', '', '', None),
             models.parse_v3_unit_placement(''),
         )
         self.assertEqual(
-            models.UnitPlacement('', '0', '', ''),
+            models.UnitPlacement('', '0', '', None),
             models.parse_v3_unit_placement('0'),
         )
         self.assertEqual(
-            models.UnitPlacement('', '', 'mysql', ''),
+            models.UnitPlacement('', '', 'mysql', None),
             models.parse_v3_unit_placement('mysql'),
         )
         self.assertEqual(
-            models.UnitPlacement('lxc', '0', '', ''),
+            models.UnitPlacement('lxc', '0', '', None),
             models.parse_v3_unit_placement('lxc:0'),
         )
         self.assertEqual(
@@ -77,19 +77,19 @@ class TestParseV4UnitPlacement(
 
     def test_success(self):
         self.assertEqual(
-            models.UnitPlacement('', '', '', ''),
+            models.UnitPlacement('', '', '', None),
             models.parse_v4_unit_placement(''),
         )
         self.assertEqual(
-            models.UnitPlacement('', '0', '', ''),
+            models.UnitPlacement('', '0', '', None),
             models.parse_v4_unit_placement('0'),
         )
         self.assertEqual(
-            models.UnitPlacement('', '', 'mysql', ''),
+            models.UnitPlacement('', '', 'mysql', None),
             models.parse_v4_unit_placement('mysql'),
         )
         self.assertEqual(
-            models.UnitPlacement('lxc', '0', '', ''),
+            models.UnitPlacement('lxc', '0', '', None),
             models.parse_v4_unit_placement('lxc:0'),
         )
         self.assertEqual(
@@ -101,11 +101,11 @@ class TestParseV4UnitPlacement(
             models.parse_v4_unit_placement('lxc:mysql/1'),
         )
         self.assertEqual(
-            models.UnitPlacement('', 'new', '', ''),
+            models.UnitPlacement('', 'new', '', None),
             models.parse_v4_unit_placement('new'),
         )
         self.assertEqual(
-            models.UnitPlacement('lxc', 'new', '', ''),
+            models.UnitPlacement('lxc', 'new', '', None),
             models.parse_v4_unit_placement('lxc:new'),
         )
 
@@ -135,35 +135,3 @@ class TestParseV4UnitPlacement(
         for test in tests:
             with self.assert_value_error(test['error'], test['about']):
                 models.parse_v4_unit_placement(test['placement'])
-
-
-class TestNormalizeMachines(
-        helpers.ValueErrorTestsMixin, unittest.TestCase):
-
-    def test_success(self):
-        provided = {
-            '0': {
-                'series': 'precise',
-            },
-            '1': {
-                'series': 'trusty',
-                'constraints': 'mem=foo',
-            },
-        }
-        expected = {
-            0: {
-                'series': 'precise',
-            },
-            1: {
-                'series': 'trusty',
-                'constraints': 'mem=foo',
-            },
-        }
-        self.assertEqual(models.normalize_machines(provided), expected)
-        self.assertEqual(models.normalize_machines(expected), expected)
-
-    def test_failure(self):
-        with self.assert_value_error(b'Malformed machines None'):
-            models.normalize_machines(None)
-        with self.assert_value_error(b'Malformed machines bad-wolf'):
-            models.normalize_machines('bad-wolf')
