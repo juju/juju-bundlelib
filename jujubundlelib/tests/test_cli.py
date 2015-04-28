@@ -19,11 +19,16 @@ class TestGetChangeset(helpers.BundleFileTestsMixin, unittest.TestCase):
         self.assertTrue(mock_print.called)
 
     def test_invalid_bundle(self, mock_print):
-        path = self.make_bundle_file("series: bad@wolf\nservices: 'oh nooooo'")
+        path = self.make_bundle_file({
+            'series': 42,
+            'services': {'django': {}},
+        })
+        expected_error = (
+            'bundle series must be a string, found 42\n'
+            'no charm specified for service django')
         error = cli.get_changeset([path])
-        self.assertEqual(
-            error, 'bundle has invalid series bad@wolf\n'
-            'services spec does not appear to be well-formed')
+        print(error)
+        self.assertEqual(expected_error, error)
 
     def test_invalid_yaml(self, mock_print):
         path = self.make_bundle_file(content=':')

@@ -30,6 +30,7 @@ def parse_v3_unit_placement(placement_str):
     """Return a UnitPlacement for bundles version 3, given a placement string.
 
     See https://github.com/juju/charmstore/blob/v4/docs/bundles.md
+    Raise a ValueError if the placement is not valid.
     """
     placement = placement_str
     container = machine = service = unit = ''
@@ -55,12 +56,7 @@ def parse_v3_unit_placement(placement_str):
         msg = 'invalid container {} for placement {}'.format(
             container, placement_str)
         raise ValueError(msg.encode('utf-8'))
-    if unit:
-        try:
-            unit = int(unit)
-        except (TypeError, ValueError):
-            msg = 'unit in placement {} must be digit'.format(placement_str)
-            raise ValueError(msg.encode('utf-8'))
+    unit = _parse_unit(unit, placement_str)
     if machine and machine != '0':
         raise ValueError(b'legacy bundles may not place units on machines '
                          b'other than 0')
@@ -71,6 +67,7 @@ def parse_v4_unit_placement(placement_str):
     """Return a UnitPlacement for bundles version 4, given a placement string.
 
     See https://github.com/juju/charmstore/blob/v4/docs/bundles.md
+    Raise a ValueError if the placement is not valid.
     """
     placement = placement_str
     container = machine = service = unit = ''
@@ -96,22 +93,20 @@ def parse_v4_unit_placement(placement_str):
         msg = 'invalid container {} for placement {}'.format(
             container, placement_str)
         raise ValueError(msg.encode('utf-8'))
-    if unit:
-        try:
-            unit = int(unit)
-        except (TypeError, ValueError):
-            msg = 'unit in placement {} must be digit'.format(placement_str)
-            raise ValueError(msg.encode('utf-8'))
+    unit = _parse_unit(unit, placement_str)
     return UnitPlacement(container, machine, service, unit)
 
 
-def normalize_machines(machines):
-    """Normalize the machines spec to use integer keys."""
-    normalized_machines = {}
+def _parse_unit(unit, placement_str):
+    """Parse a unit as part of the unit placement.
+
+    Return the unit as an integer or None.
+    Raise a ValueError if the unit is specified but it is not a digit.
+    """
+    if not unit:
+        return None
     try:
-        for k, v in machines.items():
-            normalized_machines[int(k)] = v
-    except (TypeError, AttributeError, ValueError):
-        msg = 'Malformed machines {}'.format(machines)
+        return int(unit)
+    except (TypeError, ValueError):
+        msg = 'unit in placement {} must be digit'.format(placement_str)
         raise ValueError(msg.encode('utf-8'))
-    return normalized_machines

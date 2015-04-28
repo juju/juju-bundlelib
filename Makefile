@@ -54,6 +54,14 @@ clean:
 docs: setup
 	tox -e docs
 
+.PHONY: fcheck
+fcheck: setup
+	$(MAKE) check JUJU_BUNDLELIB_FTESTS=1
+
+.PHONY: ftest
+ftest: setup
+	$(MAKE) test JUJU_BUNDLELIB_FTESTS=1
+
 .PHONY: help
 help:
 	@echo -e 'Juju Bundle Lib - list of make targets:\n'
@@ -64,6 +72,8 @@ help:
 	@echo 'make source - Create source package.'
 	@echo 'make clean - Get rid of bytecode files, build and dist dirs, venvs.'
 	@echo 'make release - Register and upload a release on PyPI.'
+	@echo 'make ftest - Run tests (including functional tests).'
+	@echo 'make fcheck - Run all Py2/Py3 tests (including functional tests).'
 	@echo -e '\nAfter creating the development environment with "make", it is'
 	@echo 'also possible to do the following:'
 	@echo '- run a specific subset of the test suite, e.g. with'

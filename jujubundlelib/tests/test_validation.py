@@ -3,812 +3,713 @@
 
 from __future__ import unicode_literals
 
-import mock
-import unittest
+import pprint
 
-from jujubundlelib import (
-    references,
-    validation,
-)
+from jujubundlelib import validation
 
 
-class TestBundleValidator(unittest.TestCase):
-
-    def test_errors(self):
-        validator = validation.BundleValidator({})
-        self.assertEqual(validator.errors(), [])
-        validator.add_error('bad-wolf')
-        self.assertEqual(validator.errors(), ['bad-wolf'])
-
-    def test_is_legacy_bundle(self):
-        validator = validation.BundleValidator({'machines': {}})
-        self.assertFalse(validator.is_legacy_bundle())
-        validator = validation.BundleValidator({'services': {}})
-        self.assertTrue(validator.is_legacy_bundle())
-
-
-class TestValidate(unittest.TestCase):
-
-    def test_validate(self):
-        bundle = {
+# Define validation tests as a dict mapping test names to tuples of type
+# (expected_errors, bundle) where expected_errors is a list of the errors
+# returned by validation.validate called passing the bundle content.
+_validation_tests = {
+    # Valid bundle.
+    'test_valid_bundle': (
+        [],
+        {
+            'services': {
+                'django': {'charm': 'cs:trusty/django-42', 'num_units': 1},
+            },
+        },
+    ),
+    'test_valid_bundle_series': (
+        [],
+        {
             'series': 'precise',
             'services': {
                 'django': {'charm': 'cs:trusty/django-42', 'num_units': 1},
             },
-        }
-        self.assertEqual([], validation.validate(bundle))
-
-    def test_no_services(self):
-        bundle = {'services': {}}
-        expected_errors = ['bundle does not define any services']
-        self.assertEqual(expected_errors, validation.validate(bundle))
-
-    def test_no_services_section(self):
-        bundle = {}
-        expected_errors = ['bundle does not define any services']
-        self.assertEqual(expected_errors, validation.validate(bundle))
-
-    def test_no_series(self):
-        bundle = {
+        },
+    ),
+    'test_valid_bundle_machines': (
+        [],
+        {
+            'services': {
+                'django': {
+                    'charm': 'cs:trusty/django-42',
+                    'num_units': 1,
+                    'to': ['1'],
+                },
+            },
+            'machines': {1: {}},
+        },
+    ),
+    'test_valid_bundle_relations': (
+        [],
+        {
             'services': {
                 'django': {'charm': 'cs:trusty/django-42', 'num_units': 1},
+                'haproxy': {'charm': 'cs:trusty/haproxy-47', 'num_units': 0},
             },
-        }
-        self.assertEqual([], validation.validate(bundle))
-
-    def test_bad_series(self):
-        bundle = {
-            'series': 'bad@wolf',
-            'services': {
-                'django': {'charm': 'cs:trusty/django-42', 'num_units': 1},
-            },
-        }
-        expected_errors = ['bundle has invalid series bad@wolf']
-        self.assertEqual(expected_errors, validation.validate(bundle))
-
-    def test_bad_bundle(self):
-        expected_errors = ['bundle does not appear to be a bundle']
-        self.assertEqual(expected_errors, validation.validate('bad-wolf'))
-
-    def test_machine_used(self):
-        bundle = {
+            'relations': [('django:http', 'haproxy:http')],
+        },
+    ),
+    'test_valid_bundle_all_sections': (
+        [],
+        {
             'series': 'precise',
             'services': {
-                'django': {'charm': 'cs:trusty/django-42', 'num_units': 1},
+                'django': {
+                    'charm': 'cs:trusty/django-42',
+                    'num_units': 1,
+                    'to': ['1'],
+                },
+                'haproxy': {'charm': 'cs:trusty/haproxy-47', 'num_units': 0},
+            },
+            'machines': {1: {}},
+            'relations': [('django:http', 'haproxy:http')],
+        },
+    ),
+    'test_valid_bundle_partial_service_url': (
+        [],
+        {
+            'services': {
+                'django': {'charm': 'django', 'num_units': 1},
+                'haproxy': {'charm': 'trusty/haproxy', 'num_units': 0},
+            },
+        },
+    ),
+    'test_valid_bundle_string_placement': (
+        [],
+        {
+            'services': {
+                'django': {
+                    'charm': 'cs:trusty/django-42',
+                    'num_units': 1,
+                    'to': '0',
+                },
+            },
+            'machines': {0: {}},
+        },
+    ),
+    'test_valid_bundle_no_num_units': (
+        [],
+        {
+            'services': {
+                'django': {'charm': 'cs:trusty/django-42'},
+            },
+        },
+    ),
+    'test_valid_bundle_constraints': (
+        [],
+        {
+            'services': {
+                'django': {
+                    'charm': 'cs:trusty/django-42',
+                    'num_units': 1,
+                    'constraints': 'cpu-cores=8 arch=amd64',
+                },
+            },
+        },
+    ),
+    'test_valid_bundle_options': (
+        [],
+        {
+            'services': {
+                'django': {
+                    'charm': 'cs:trusty/django-42',
+                    'num_units': 1,
+                    'options': {'key1': 47, 'key2': 'val2'},
+                },
+            },
+        },
+    ),
+    'test_valid_unit_placement': (
+        [],
+        {
+            'services': {
+                'django': {
+                    'charm': 'trusty/django',
+                    'num_units': 3,
+                    'to': ['kvm:0', '1'],
+                },
+                'rails': {'charm': 'rails', 'num_units': 1},
+                'haproxy': {
+                    'charm': 'haproxy',
+                    'num_units': 1,
+                    'to': 'rails/0',
+                },
+                'memcached': {
+                    'charm': 'cs:memcached-42',
+                    'num_units': 2,
+                    'to': ['lxc:1', 'new'],
+                }
             },
             'machines': {
-                '0': {},
-            },
-        }
-        expected_errors = [
-            'machine 0 not referred to by a placement directive']
-        self.assertEqual(expected_errors, validation.validate(bundle))
-
-    def test_bad_machines(self):
-        bundle = {
-            'services': {},
-            'machines': 'bad-wolf',
-        }
-        expected_errors = ['machines spec does not appear to be well-formed']
-        self.assertEqual(expected_errors, validation.validate(bundle))
-
-
-class TestValidPartials(unittest.TestCase):
-
-    def test_valid_series(self):
-        self.assertFalse(validation.valid_series('a:b'))
-        self.assertFalse(validation.valid_series('bundle'))
-        self.assertTrue(validation.valid_series('precise'))
-
-    def test_valid_constraints(self):
-        good_constraints = (
-            '',
-            'mem=bar arch=42',
-            'mem=bar    arch=42',
-        )
-        for constraint in good_constraints:
-            self.assertTrue(validation.valid_constraints(constraint))
-
-        bad_constraints = (
-            'mem',
-            'foo=bar'
-            'mem=bar=baz',
-            'mem=bar ='
-            '==',
-        )
-        for constraint in bad_constraints:
-            self.assertFalse(validation.valid_constraints(constraint))
-
-
-class TestValidateMachines(unittest.TestCase):
-
-    def test_validate_machines_success(self):
-        tests = (
-            {
-                'about': 'no machines',
-                'bundle': {'services': {}},
-            },
-            {
-                'about': 'simple machine',
-                'bundle': {'services': {}, 'machines': {'0': {}}},
-            },
-            {
-                'about': 'machine with constraints',
-                'bundle': {
-                    'services': {},
-                    'machines': {
-                        '0': {
-                            'constraints': 'mem=foo',
-                        }
-                    },
-                },
-            },
-            {
-                'about': 'machine with series',
-                'bundle': {
-                    'services': {},
-                    'machines': {
-                        '0': {
-                            'series': 'trusty',
-                        },
-                    },
-                },
-            },
-            {
-                'about': 'machine with series, constraints, and annotations',
-                'bundle': {
-                    'services': {},
-                    'machines': {
-                        '0': {
-                            'series': 'trusty',
-                            'constraints': 'mem=foo',
-                            'annotations': {
-                                'foo': 'bar',
-                            },
-                        },
-                    },
-                },
-            },
-        )
-        for test in tests:
-            machines = test['bundle']['machines'] if \
-                'machines' in test['bundle'] else {}
-            validator = validation.BundleValidator(test['bundle'])
-            validation.validate_machines(validator, machines)
-            self.assertEqual(validator.errors(), [], msg=test['about'])
-
-    def test_validate_machines_failure(self):
-        tests = (
-            {
-                'about': 'bad name',
-                'bundle': {'services': {}, 'machines': {'foo': {}}},
-                'errors': [
-                    'machine foo has an invalid id, must be digit',
-                ],
-            },
-            {
-                'about': 'negative name',
-                'bundle': {'services': {}, 'machines': {'-1': {}}},
-                'errors': [
-                    'machine -1 has an invalid id, must be positive digit',
-                ],
-            },
-            {
-                'about': 'invalid constraints',
-                'bundle': {
-                    'services': {},
-                    'machines': {
-                        '0': {
-                            'constraints': 'bad-wolf=foo',
-                        }
-                    },
-                },
-                'errors': [
-                    'machine 0 has invalid constraints bad-wolf=foo',
-                ],
-            },
-            {
-                'about': 'invalid series',
-                'bundle': {
-                    'services': {},
-                    'machines': {
-                        '0': {
-                            'series': 'bad@wolf',
-                        },
-                    },
-                },
-                'errors': [
-                    'machine 0 has invalid series bad@wolf',
-                ],
-            },
-            {
-                'about': 'integration',
-                'bundle': {
-                    'services': {},
-                    'machines': {
-                        'bad-wolf': {
-                            'series': 'bad@wolf',
-                            'constraints': 'bad-wolf=foo',
-                            'annotations': 'bad-wolf',
-                        },
-                    },
-                },
-                'errors': [
-                    'machine bad-wolf has an invalid id, must be digit',
-                    'machine bad-wolf has invalid constraints bad-wolf=foo',
-                    'machine bad-wolf has invalid series bad@wolf',
-                    'machine bad-wolf has invalid annotations bad-wolf',
-                ],
-            },
-        )
-        for test in tests:
-            machines = test['bundle']['machines'] if \
-                'machines' in test['bundle'] else {}
-            validator = validation.BundleValidator(test['bundle'])
-            validation.validate_machines(validator, machines)
-            self.assertEqual(validator.errors(), test['errors'],
-                             msg=test['about'])
-
-
-class TestValidateServices(unittest.TestCase):
-
-    @mock.patch('jujubundlelib.validation.validate_placement')
-    def test_validate_services_success(self, mock_placement):
-        tests = (
-            {
-                'about': 'plain service',
-                'bundle': {
-                    'services': {
-                        'foo': {
-                            'charm': 'cs:precise/django-1',
-                            'num_units': 1,
-                        },
-                    },
-                },
-                'machines_used': {
-                    'in': {},
-                    'out': {},
-                }
-            },
-            {
-                'about': 'with constraints',
-                'bundle': {
-                    'services': {
-                        'foo': {
-                            'charm': 'cs:precise/django-1',
-                            'num_units': 1,
-                            'constraints': 'mem=foo',
-                        },
-                    },
-                },
-                'machines_used': {
-                    'in': {},
-                    'out': {},
-                }
-            },
-            {
-                'about': 'with single placement',
-                'bundle': {
-                    'services': {
-                        'foo': {
-                            'charm': 'cs:precise/django-1',
-                            'num_units': 1,
-                            'to': '0',
-                        },
-                    },
-                },
-                'machines_used': {
-                    'in': {'0': False},
-                    'out': {'0': True},
-                }
-            },
-            {
-                'about': 'with list placement',
-                'bundle': {
-                    'services': {
-                        'foo': {
-                            'charm': 'cs:precise/django-1',
-                            'num_units': 1,
-                            'to': ['0'],
-                        },
-                    },
-                },
-                'machines_used': {
-                    'in': {'0': False},
-                    'out': {'0': True},
-                }
-            },
-            {
-                'about': 'integration',
-                'bundle': {
-                    'services': {
-                        'foo': {
-                            'charm': 'cs:precise/django-1',
-                            'num_units': 1,
-                            'constraints': 'mem=foo',
-                            'to': ['0'],
-                        },
-                    },
-                },
-                'machines_used': {
-                    'in': {'0': False},
-                    'out': {'0': True},
-                }
-            },
-        )
-        machines = {
-            0: {},
-        }
-        for test in tests:
-            validator = validation.BundleValidator(test['bundle'])
-            validation.validate_services(
-                validator, machines,
-                machines_used=test['machines_used']['in'])
-            self.assertEqual(validator.errors(), [], msg=test['about'])
-
-    @mock.patch('jujubundlelib.validation.validate_placement')
-    def test_validate_services_failure(self, mock_placement):
-        tests = (
-            {
-                'about': 'malformed services',
-                'bundle': {
-                    'services': 'bad-wolf',
-                },
-                'errors': [
-                    'services spec does not appear to be well-formed',
-                ],
-            },
-            {
-                'about': 'bad charm - parsing',
-                'bundle': {
-                    'services': {
-                        'foo': {
-                            'charm': 'cs:foo:bar/baz-q',
-                            'num_units': 1,
-                        },
-                    },
-                },
-                'errors': [
-                    'invalid charm specified for service foo: URL has '
-                    'invalid series: foo:bar',
-                ],
-            },
-            {
-                'about': 'bad charm - local',
-                'bundle': {
-                    'services': {
-                        'foo': {
-                            'charm': 'local:precise/django-1',
-                            'num_units': 1,
-                        },
-                    },
-                },
-                'errors': [
-                    'local charms not allowed for service foo: '
-                    'local:precise/django-1',
-                ],
-            },
-            {
-                'about': 'bad charm - bundle',
-                'bundle': {
-                    'services': {
-                        'foo': {
-                            'charm': 'cs:bundle/django-1',
-                            'num_units': 1,
-                        },
-                    },
-                },
-                'errors': [
-                    'bundles not allowed for service foo: '
-                    'cs:bundle/django-1',
-                ],
-            },
-            {
-                'about': 'bad num_units',
-                'bundle': {
-                    'services': {
-                        'foo': {
-                            'charm': 'cs:precise/django-1',
-                            'num_units': 'a',
-                        },
-                    },
-                },
-                'errors': [
-                    'num_units for service foo must be an integer',
-                ],
-            },
-            {
-                'about': 'bad num_units regression: string digit',
-                'bundle': {
-                    'services': {
-                        'foo': {
-                            'charm': 'cs:precise/django-1',
-                            'num_units': '1',
-                        },
-                    },
-                },
-                'errors': [
-                    'num_units for service foo must be an integer',
-                ],
-            },
-            {
-                'about': 'bad constraints',
-                'bundle': {
-                    'services': {
-                        'foo': {
-                            'charm': 'cs:precise/django-1',
-                            'num_units': 1,
-                            'constraints': 'bad-wolf=foo',
-                        },
-                    },
-                },
-                'errors': [
-                    'service foo has invalid constraints bad-wolf=foo',
-                ],
-            },
-            {
-                'about': 'too many placements',
-                'bundle': {
-                    'services': {
-                        'foo': {
-                            'charm': 'cs:precise/django-1',
-                            'num_units': 1,
-                            'to': ['0', '1'],
-                        },
-                    },
-                },
-                'errors': [
-                    'too many units for service foo',
-                ],
-            },
-            {
-                'about': 'integration',
-                'bundle': {
-                    'services': {
-                        'foo': {
-                            'charm': 'cs:precise/django-1',
-                            'num_units': -1,
-                            'constraints': 'bad-wolf=foo',
-                            'to': ['0', '1'],
-                        },
-                    },
-                },
-                'errors': [
-                    'service foo has invalid constraints bad-wolf=foo',
-                    'invalid units for service foo: -1',
-                    'too many units for service foo',
-                ],
-            },
-            {
-                'about': 'no charm specified',
-                'bundle': {
-                    'services': {
-                        'foo': {
-                            'num_units': 1,
-                        },
-                    },
-                },
-                'errors': ['no charm specified for service foo'],
-            },
-        )
-        machines = {
-            0: {},
-        }
-        for test in tests:
-            validator = validation.BundleValidator(test['bundle'])
-            validation.validate_services(validator, machines)
-            errors = validator.errors()
-            msg = '{}: {} != {}'.format(test['about'], test['errors'], errors)
-            self.assertEqual(test['errors'], errors, msg=msg)
-
-
-class TestValidatePlacement(unittest.TestCase):
-
-    def test_validate_placement_v3_success(self):
-        tests = (
-            {
-                'about': 'v3: service, no unit',
-                'placement': 'foo',
-            },
-            {
-                'about': 'v3: service, unit',
-                'placement': 'foo=0',
-            },
-            {
-                'about': 'v3: machine',
-                'placement': '0'
-            },
-            {
-                'about': 'v3: container, service, no unit',
-                'placement': 'lxc:foo',
-            },
-            {
-                'about': 'v3: container, service, unit',
-                'placement': 'lxc:foo=0',
-            },
-            {
-                'about': 'v3: container, machine',
-                'placement': 'lxc:0',
-            },
-        )
-        for test in tests:
-            validator = validation.BundleValidator({
-                'services': {
-                    'foo': {
-                        'num_units': 1,
-                    },
-                },
-            })
-            validation.validate_placement(
-                validator, test['placement'], None, {}, {})
-            self.assertEqual(validator.errors(), [], msg=test['about'])
-
-    def test_validate_placement_v3_failure(self):
-        tests = (
-            {
-                'about': 'v3: bad service, no unit',
-                'placement': 'bar',
-                'errors': [
-                    'placement bar refers to non-existant service bar',
-                ],
-            },
-            {
-                'about': 'v3: bad service, good unit',
-                'placement': 'bar=0',
-                'errors': [
-                    'placement bar=0 refers to non-existant service bar',
-                ],
-            },
-            {
-                'about': 'v3: good service, bad unit format',
-                'placement': 'foo=a',
-                'errors': [
-                    'unit in placement foo=a must be digit',
-                ],
-            },
-            {
-                'about': 'v3: good service, bad unit',
-                'placement': 'foo=1',
-                'errors': [
-                    'placement foo=1 specifies a unit greater than the units '
-                    'in service foo',
-                ],
-            },
-            {
-                'about': 'v3: bad machine',
-                'placement': '1',
-                'errors': [
-                    'legacy bundles may not place units on machines other '
-                    'than 0',
-                ],
-            },
-            {
-                'about': 'v3: bad container',
-                'placement': 'bar:0',
-                'errors': [
-                    'invalid container bar for placement bar:0',
-                ],
-            }
-        )
-        for test in tests:
-            validator = validation.BundleValidator({
-                'services': {
-                    'foo': {
-                        'num_units': 1,
-                    },
-                },
-            })
-            validation.validate_placement(
-                validator, test['placement'], None, {}, {})
-            self.assertEqual(validator.errors(), test['errors'],
-                             msg=test['about'])
-
-    def test_validate_placement_v4_success(self):
-        tests = (
-            {
-                'about': 'v4: service, no unit',
-                'placement': 'foo',
-            },
-            {
-                'about': 'v4: service, unit',
-                'placement': 'foo/0',
-            },
-            {
-                'about': 'v4: machine',
-                'placement': '0',
-                'expected_machines_used': {0: True},
-            },
-            {
-                'about': 'v4: new machine',
-                'placement': 'new',
-            },
-            {
-                'about': 'v4: container, service, no unit',
-                'placement': 'lxc:foo',
-            },
-            {
-                'about': 'v4: container, service, unit',
-                'placement': 'lxc:foo/0',
-            },
-            {
-                'about': 'v4: container, machine',
-                'placement': 'lxc:0',
-            },
-            {
-                'about': 'v4: container, new machine',
-                'placement': 'lxc:new',
-            },
-            {
-                'about': 'v4: with charm',
-                'placement': '0',
-                'charm': references.Reference.from_string('cs:precise/foo-1'),
-            },
-        )
-        machines = {
-            0: {
-                'series': 'precise',
-            },
-        }
-        for test in tests:
-            machines_used = {0: False}
-            validator = validation.BundleValidator({
-                'services': {
-                    'foo': {
-                        'num_units': 1,
-                    },
-                },
-                'machines': {
-                    0: {
-                        'series': 'precise',
-                    },
-                },
-            })
-            validation.validate_placement(
-                validator, test['placement'], test.get('charm'), machines,
-                machines_used)
-            self.assertEqual(validator.errors(), [], msg=test['about'])
-            if 'expected_machines_used' in test:
-                self.assertEqual(machines_used,
-                                 test['expected_machines_used'])
-
-    def test_validate_placement_v4_failure(self):
-        tests = (
-            {
-                'about': 'v4: bad service, no unit',
-                'placement': 'bar',
-                'errors': [
-                    'placement bar refers to non-existant service bar',
-                ],
-            },
-            {
-                'about': 'v4: bad service, good unit',
-                'placement': 'bar/0',
-                'errors': [
-                    'placement bar/0 refers to non-existant service bar',
-                ],
-            },
-            {
-                'about': 'v4: good service, bad unit format',
-                'placement': 'foo/a',
-                'errors': [
-                    'unit in placement foo/a must be digit',
-                ],
-            },
-            {
-                'about': 'v4: good service, bad unit',
-                'placement': 'foo/1',
-                'errors': [
-                    'placement foo/1 specifies a unit greater than the units '
-                    'in service foo',
-                ],
-            },
-            {
-                'about': 'v4: bad machine',
-                'placement': '1',
-                'errors': [
-                    'placement 1 refers to a non-existant machine 1',
-                ],
-            },
-            {
-                'about': 'v4: bad container',
-                'placement': 'bar:0',
-                'errors': [
-                    'invalid container bar for placement bar:0',
-                ],
-            },
-            {
-                'about': 'v4: bad charm series',
-                'placement': '0',
-                'charm': references.Reference.from_string('cs:trusty/foo-1'),
-                'errors': [
-                    'charm cs:trusty/foo-1 cannot be deployed to machine '
-                    'with different series precise'
-                ],
-            },
-        )
-        for test in tests:
-            machines = {
-                0: {
-                    'series': 'precise',
-                }
-            }
-            validator = validation.BundleValidator({
-                'services': {
-                    'foo': {
-                        'num_units': 1,
-                    },
-                },
-                'machines': machines,
-            })
-            validation.validate_placement(
-                validator, test['placement'], test.get('charm'), machines, {})
-            self.assertEqual(validator.errors(), test['errors'],
-                             msg=test['about'])
-
-
-class TestValidateRelations(unittest.TestCase):
-
-    def test_validate_realtions_success(self):
-        success = validation.BundleValidator({
-            'services': {
-                'foo': {},
-                'bar': {},
-            },
-            'relations': [
-                ['foo:a', 'bar:a'],
-            ],
-        })
-        validation.validate_relations(success)
-        self.assertEqual(success.errors(), [])
-
-    def test_validate_relations_failure(self):
-        failure = validation.BundleValidator({
-            'services': {
-                'foo': {},
-                'bar': {},
-            },
-            'relations': [
-                'bad-wolf',
-                ['foo', 'bar:a'],
-                ['foo:a', 'baz:a'],
-            ],
-        })
-        validation.validate_relations(failure)
-        failure.bundle['relations'] = 'bad-wolf'
-        validation.validate_relations(failure)
-        self.assertEqual(failure.errors(), [
-            'relation bad-wolf is malformed',
-            'relation {} refers to a non-existant service baz'.format(
-                ['foo:a', 'baz:a']),
-            'relations bad-wolf are malformed',
-        ])
-
-
-class TestValidateOptions(unittest.TestCase):
-
-    def test_validate_options(self):
-        success = validation.BundleValidator({
-            'services': {
-                'foo': {
-                    'options': {
+                '0': {
+                    'series': 'trusty',
+                    'constraints': 'mem=8000 cpu-cores=4',
+                    'annotations': {
                         'foo': 'bar',
                     },
                 },
-                'bar': {},
+                '1': {},
             },
-        })
-        validation.validate_options(
-            success, 'foo', success.bundle['services']['foo'])
-        self.assertEqual(success.errors(), [])
-        failure = validation.BundleValidator({
+        },
+    ),
+    'test_valid_relations': (
+        [],
+        {
             'services': {
-                'foo': {
-                    'options': "bad-wolf"
+                'django': {
+                    'charm': 'trusty/django',
+                    'num_units': 3,
+                    'to': ['kvm:0', '1'],
                 },
-                'bar': {},
+                'rails': {'charm': 'rails', 'num_units': 1},
+                'haproxy': {
+                    'charm': 'haproxy',
+                    'num_units': 1,
+                    'to': 'rails/0',
+                },
+                'memcached': {
+                    'charm': 'cs:memcached-42',
+                    'num_units': 2,
+                    'to': ['lxc:1', 'new'],
+                }
             },
-        })
-        validation.validate_options(
-            failure, 'foo', failure.bundle['services']['foo'])
-        self.assertEqual(
-            failure.errors(), ['service foo has malformed options'])
+            'machines': {
+                '0': {
+                    'series': 'trusty',
+                    'constraints': 'mem=8000 cpu-cores=4',
+                    'annotations': {
+                        'foo': 'bar',
+                    },
+                },
+                '1': {},
+            },
+            'relations': [
+                ['django:web', 'haproxy:web'],
+                ['rails:cache', 'memcached:cache'],
+                ['haproxy', 'rails'],
+                ['django:cache', 'memcached'],
+            ],
+        },
+    ),
+
+    # Invalid bundle.
+    'test_invalid_bundle_int': (
+        ['bundle does not appear to be a bundle'],
+        42,
+    ),
+    'test_invalid_bundle_string': (
+        ['bundle does not appear to be a bundle'],
+        'invalid',
+    ),
+
+    # Invalid bundle sections.
+    'test_empty_bundle': (
+        ['bundle does not define any services'],
+        {},
+    ),
+    'test_no_services_section': (
+        ['bundle does not define any services'],
+        {'services': {}},
+    ),
+    'test_invalid_services_section': (
+        ['services spec does not appear to be well-formed'],
+        {'services': 42},
+    ),
+    'test_invalid_machines_section': (
+        ['machines spec does not appear to be well-formed'],
+        {
+            'services': {
+                'django': {'charm': 'cs:trusty/django-42', 'num_units': 1},
+            },
+            'machines': 42,
+        },
+    ),
+    'test_invalid_machines_section_non_digit_string': (
+        ['machines spec identifiers must be digits'],
+        {
+            'services': {
+                'django': {'charm': 'cs:trusty/django-42', 'num_units': 1},
+            },
+            'machines': {'foo': {}},
+        },
+    ),
+    'test_invalid_machines_section_non_digit_tuple': (
+        ['machines spec identifiers must be digits'],
+        {
+            'services': {
+                'django': {'charm': 'cs:trusty/django-42', 'num_units': 1},
+            },
+            'machines': {'1': {}, ('foo'): {}},
+        },
+    ),
+    'test_invalid_relations_section_int': (
+        ['relations spec does not appear to be well-formed'],
+        {
+            'services': {
+                'django': {'charm': 'cs:trusty/django-42', 'num_units': 1},
+            },
+            'relations': 42,
+        },
+    ),
+    'test_invalid_relations_section_string': (
+        ['relations spec does not appear to be well-formed'],
+        {
+            'services': {
+                'django': {'charm': 'cs:trusty/django-42', 'num_units': 1},
+            },
+            'relations': 'invalid',
+        },
+    ),
+
+    # Invalid series.
+    'test_invalid_bundle_series_type': (
+        ['bundle series must be a string, found []'],
+        {
+            'series': [],
+            'services': {
+                'django': {'charm': 'cs:trusty/django-42', 'num_units': 1},
+            },
+        },
+    ),
+    'test_invalid_bundle_series_format': (
+        ['bundle has invalid series not@valid'],
+        {
+            'series': 'not@valid',
+            'services': {
+                'django': {'charm': 'cs:trusty/django-42', 'num_units': 1},
+            },
+        },
+    ),
+    'test_invalid_bundle_series_bundle': (
+        ['bundle series must specify a charm series'],
+        {
+            'series': 'bundle',
+            'services': {
+                'django': {'charm': 'cs:trusty/django-42', 'num_units': 1},
+            },
+        },
+    ),
+
+    # Invalid services.
+    'test_invalid_service_name': (
+        ['service name 42 must be a string'],
+        {
+            'services': {
+                'django': {'charm': 'cs:trusty/django-42', 'num_units': 1},
+                42: {'charm': 'cs:trusty/bad-charm', 'num_units': 1},
+            },
+        },
+    ),
+    'test_invalid_service_too_many_units': (
+        ['too many units placed for service django'],
+        {
+            'services': {
+                'django': {
+                    'charm': 'cs:trusty/django-42',
+                    'num_units': 2,
+                    'to': ['1', 'lxc:1', 'new']
+                },
+            },
+            'machines': {'1': {}},
+        },
+    ),
+    'test_invalid_service_machine_not_referred_to': (
+        ['machine 1 not referred to by a placement directive',
+         'machine 2 not referred to by a placement directive'],
+        {
+            'services': {
+                'django': {
+                    'charm': 'cs:trusty/django-42',
+                    'num_units': 2,
+                    'to': 'new',
+                },
+            },
+            'machines': {'1': {}, '2': {}},
+        },
+    ),
+    'test_invalid_service_charm_url': (
+        ['no charm specified for service django',
+         'empty charm specified for service haproxy',
+         'invalid charm specified for service mysql: 42',
+         'invalid charm specified for service rails: '
+         'URL has invalid schema: bad'],
+        {
+            'services': {
+                'django': {'num_units': 1},
+                'haproxy': {'charm': '', 'num_units': 1},
+                'mysql': {'charm': 42, 'num_units': 1},
+                'rails': {'charm': 'bad:wolf', 'num_units': 1},
+            },
+        },
+    ),
+    'test_invalid_service_charm_reference': (
+        ['local charms not allowed for service mysql: local:mysql',
+         'bundle cannot be used as charm for service rails: cs:bundle/rails'],
+        {
+            'services': {
+                'mysql': {'charm': 'local:mysql', 'num_units': 1},
+                'rails': {'charm': 'bundle/rails', 'num_units': 1},
+            },
+        },
+    ),
+    'test_invalid_service_num_units': (
+        ['num_units for service django must be a digit',
+         'num_units for service haproxy must be a digit',
+         'num_units -47 for service mysql must be a positive digit'],
+        {
+            'services': {
+                'django': {'charm': 'django', 'num_units': 'bad-wolf'},
+                'haproxy': {'charm': 'haproxy', 'num_units': {}},
+                'mysql': {'charm': 'mysql', 'num_units': -47},
+            },
+        },
+    ),
+    'test_invalid_service_constraints': (
+        ['service django has invalid constraints 47',
+         'service memcached has invalid constraints {}',
+         'service haproxy has invalid constraints bad wolf',
+         'service rails has invalid constraints foo=bar'],
+        {
+            'services': {
+                'django': {
+                    'charm': 'cs:trusty/django-42',
+                    'num_units': 2,
+                    'constraints': 47,
+                },
+                'memcached': {'charm': 'memcached', 'constraints': {}},
+                'haproxy': {'charm': 'haproxy', 'constraints': 'bad wolf'},
+                'rails': {'charm': 'rails', 'constraints': 'foo=bar'},
+            },
+        },
+    ),
+    'test_invalid_service_options': (
+        ['service django has malformed options',
+         'service haproxy has malformed options',
+         'service rails has malformed options'],
+        {
+            'services': {
+                'django': {'charm': 'cs:trusty/django-42', 'options': 47},
+                'rails': {'charm': 'trusty/rails', 'options': 'bad wolf'},
+                'haproxy': {'charm': 'cs:trusty/haproxy', 'options': []},
+            },
+        },
+    ),
+    'test_invalid_service_annotations': (
+        ['service django has invalid annotations 47',
+         'service rails has invalid annotations bad wolf',
+         'service haproxy has invalid annotations: keys must be strings'],
+        {
+            'services': {
+                'django': {
+                    'charm': 'cs:trusty/django-42',
+                    'annotations': 47,
+                },
+                'rails': {
+                    'charm': 'trusty/rails',
+                    'annotations': 'bad wolf',
+                },
+                'haproxy': {
+                    'charm': 'cs:trusty/haproxy',
+                    'annotations': {'key1': 'value1', None: 42},
+                },
+            },
+        },
+    ),
+
+    # Invalid unit placement.
+    'test_invalid_machine_placement_v3_bundle': (
+        ['too many units placed for service django',
+         'invalid container bad for placement bad:wolf',
+         'legacy bundles may not place units on machines other than 0',
+         'invalid placement 47: placement must be a string'],
+        {
+            'services': {
+                'django': {'charm': 'django', 'to': 'bad:wolf'},
+                'rails': {'charm': 'rails', 'num_units': 1, 'to': '1'},
+                'haproxy': {'charm': 'haproxy', 'num_units': 1, 'to': 47},
+            },
+        },
+    ),
+    'test_invalid_machine_placement_v4_bundle': (
+        ['invalid container bad for placement bad:wolf',
+         'placement 3 refers to a non-existent machine 3',
+         'too many units placed for service haproxy'],
+        {
+            'services': {
+                'django': {
+                    'charm': 'django',
+                    'num_units': 2,
+                    'to': ['1', 'bad:wolf'],
+                },
+                'rails': {'charm': 'rails', 'num_units': 1, 'to': '3'},
+                'haproxy': {
+                    'charm': 'haproxy',
+                    'num_units': 2,
+                    'to': ['1', 'lxc:2', '2'],
+                },
+            },
+            'machines': {1: {}, '2': {}}
+        },
+    ),
+    'test_invalid_service_placement_v3_bundle': (
+        ['placement no-such refers to non-existent service no-such',
+         'placement no-such=0 refers to non-existent service no-such',
+         'unit in placement rails=no-such must be digit',
+         'placement haproxy=2 specifies a unit greater than the units in '
+         'service haproxy'],
+        {
+            'services': {
+                'django': {
+                    'charm': 'utopic/django',
+                    'num_units': 1,
+                    'to': 'no-such',
+                },
+                'rails': {'charm': 'rails', 'num_units': 1, 'to': 'no-such=0'},
+                'haproxy': {
+                    'charm': 'haproxy',
+                    'num_units': 1,
+                    'to': 'rails=no-such',
+                },
+                'memcached': {
+                    'charm': 'cs:memcached-42',
+                    'num_units': 2,
+                    'to': 'haproxy=2',
+                }
+            },
+        },
+    ),
+    'test_invalid_service_placement_v4_bundle': (
+        ['charm cs:utopic/django cannot be deployed to machine with different '
+         'series trusty',
+         'placement no-such refers to non-existent service no-such',
+         'placement no-such/0 refers to non-existent service no-such',
+         'unit in placement rails/invalid must be digit',
+         'placement haproxy/2 specifies a unit greater than the units in '
+         'service haproxy'],
+        {
+            'services': {
+                'django': {
+                    'charm': 'utopic/django',
+                    'num_units': 3,
+                    'to': ['no-such', '0', 'lxc:1'],
+                },
+                'rails': {'charm': 'rails', 'num_units': 1, 'to': 'no-such/0'},
+                'haproxy': {
+                    'charm': 'haproxy',
+                    'num_units': 1,
+                    'to': 'rails/invalid',
+                },
+                'memcached': {
+                    'charm': 'cs:memcached-42',
+                    'num_units': 2,
+                    'to': 'haproxy/2',
+                }
+            },
+            'machines': {
+                '0': {
+                    'series': 'trusty',
+                    'constraints': 'mem=8000',
+                    'annotations': {
+                        'foo': 'bar',
+                    },
+                },
+                '1': {},
+            },
+        },
+    ),
+    'test_invalid_service_placement_num_units': (
+        ['machine 0 not referred to by a placement directive',
+         'placement 42 refers to a non-existent machine 42',
+         'num_units for service rails must be a digit',
+         'invalid container no-such for placement no-such:1'],
+        {
+            'services': {
+                'django': {
+                    'charm': 'utopic/django',
+                    'num_units': 3,
+                    'to': ['42', 'lxc:1'],
+                },
+                'rails': {'charm': 'rails', 'num_units': 'invalid'},
+                'haproxy': {
+                    'charm': 'haproxy',
+                    'num_units': 1,
+                    'to': 'rails/0',
+                },
+                'memcached': {
+                    'charm': 'cs:memcached-42',
+                    'num_units': 2,
+                    'to': 'no-such:1',
+                }
+            },
+            'machines': {
+                '0': {
+                    'series': 'trusty',
+                    'constraints': 'mem=8000',
+                    'annotations': {
+                        'foo': 'bar',
+                    },
+                },
+                '1': {},
+            },
+        },
+    ),
+
+    # Invalid machines.
+    'test_invalid_machines_number': (
+        ['machine -1 has an invalid id, must be positive digit',
+         'machine -1 not referred to by a placement directive',
+         'machine -47 has an invalid id, must be positive digit',
+         'machine -47 not referred to by a placement directive'],
+        {
+            'services': {
+                'django': {'charm': 'utopic/django', 'num_units': 3},
+            },
+            'machines': {
+                -1: {
+                    'series': 'trusty',
+                    'constraints': 'mem=8000',
+                    'annotations': {
+                        'foo': 'bar',
+                    },
+                },
+                '-47': {},
+            },
+        },
+    ),
+    'test_invalid_machines_constraints': (
+        ['machine 0 has invalid constraints 47',
+         'machine 1 has invalid constraints invalid',
+         'machine 2 has invalid constraints no-such=exterminate'],
+        {
+            'services': {
+                'rails': {
+                    'charm': 'rails',
+                    'num_units': 3,
+                    'to': ['0', '1', '2'],
+                },
+            },
+            'machines': {
+                '0': {'constraints': 47},
+                1: {'series': 'trusty', 'constraints': 'invalid'},
+                '2': {'constraints': 'no-such=exterminate'},
+            },
+        },
+    ),
+    'test_invalid_machines_series': (
+        ['machine 0 series must be a string, found 42',
+         'machine 1 has invalid series no:such',
+         'machine 2 series must specify a charm series'],
+        {
+            'services': {
+                'rails': {
+                    'charm': 'precise/rails',
+                    'num_units': 3,
+                    'to': ['0', '1', 'lxc:2'],
+                },
+            },
+            'machines': {
+                '0': {'series': 42, 'constraints': 'arch=i386'},
+                1: {'series': 'no:such', 'annotations': {'key1': 'val1'}},
+                '2': {'series': 'bundle', 'annotations': {}},
+            },
+        },
+    ),
+    'test_invalid_machines_annotations': (
+        ['machine 0 has invalid annotations 42',
+         'machine 1 has invalid annotations invalid',
+         'machine 2 has invalid annotations: keys must be strings'],
+        {
+            'services': {
+                'rails': {
+                    'charm': 'precise/rails',
+                    'num_units': 3,
+                    'to': ['0', '1', 'lxc:2'],
+                },
+            },
+            'machines': {
+                '0': {'annotations': 42},
+                1: {'annotations': 'invalid'},
+                '2': {'annotations': {'key1': 'value', 42: 'value'}},
+            },
+        },
+    ),
+    'test_invalid_machines_multiple_errors': (
+        ['machine 0 has invalid annotations exterminate',
+         'machine 0 series must specify a charm series',
+         'machine 1 has invalid annotations 47',
+         'machine 1 series must be a string, found 42',
+         'machine 2 has invalid constraints we=are=the=borg'],
+        {
+            'services': {
+                'rails': {
+                    'charm': 'precise/rails',
+                    'num_units': 3,
+                    'to': ['0', '1', 'lxc:2'],
+                },
+            },
+            'machines': {
+                '0': {'series': 'bundle', 'annotations': 'exterminate'},
+                1: {'series': 42, 'constraints': '', 'annotations': 47},
+                '2': {'constraints': 'we=are=the=borg'},
+            },
+        },
+    ),
+
+    # Invalid relations.
+    'test_invalid_relations': (
+        ['relation 42 is malformed',
+         'relation 47 -> django:db has malformed endpoint 47',
+         'relation bad wolf is malformed',
+         'relation haproxy:web -> {} has malformed endpoint {}',
+         'relation mysql:db -> rails:db endpoint rails:db refers to a '
+         'non-existent service rails',
+         'relation no-such -> django endpoint no-such refers to a '
+         'non-existent service no-such'],
+        {
+            'services': {
+                'django': {'charm': 'cs:trusty/django-42', 'num_units': 1},
+                'mysql': {'charm': 'trusty/mysql', 'num_units': 1},
+                'haproxy': {'charm': 'cs:trusty/haproxy', 'num_units': 1},
+            },
+            'relations': [
+                42,
+                [47, 'django:db'],
+                ['mysql:db', 'django:db'],
+                ['mysql:db', 'rails:db'],
+                ['haproxy:web', {}],
+                ['haproxy', 'django'],
+                ['no-such', 'django'],
+                'bad wolf',
+            ],
+        },
+    ),
+}
+
+
+def test_validate():
+    """Test bundle validation.
+
+    Single tests are generated using the _validation_tests dict.
+    """
+    for about, params in _validation_tests.items():
+        expected_errors, bundle = params
+        yield _make_bundle_validation_check(about), expected_errors, bundle
+
+
+def _make_bundle_validation_check(about):
+    """Generate and return an error test callable."""
+
+    def inner(expected_errors, bundle):
+        expected_errors = sorted(expected_errors)
+        errors = sorted(validation.validate(bundle))
+        msg = (
+            'error mismatch\nbundle:\n{}\nerrors:\nexpected {}\nobtained {}'
+            ''.format(pprint.pformat(bundle), expected_errors, errors))
+        assert expected_errors == errors, msg
+    inner.description = about
+
+    return inner
