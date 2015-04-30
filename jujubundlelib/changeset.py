@@ -119,7 +119,7 @@ def handle_units(changeset):
     """Populate the change set with addUnit changes."""
     units, records = {}, {}
     for service_name, service in changeset.bundle['services'].items():
-        for i in range(service['num_units']):
+        for i in range(service.get('num_units', 0)):
             record_id = 'addUnit-{}'.format(changeset.next_action())
             unit_name = '{}/{}'.format(service_name, i)
             records[record_id] = {
@@ -143,14 +143,19 @@ def handle_units(changeset):
 def _handle_units_placement(changeset, units, records):
     """Ensure that requires and placement directives are taken into account."""
     for service_name, service in changeset.bundle['services'].items():
+        num_units = service.get('num_units')
+        if num_units is None:
+            # This is a subordinate service.
+            continue
         placement_directives = service.get('to', [])
         if not isinstance(placement_directives, (list, tuple)):
             placement_directives = [placement_directives]
         if placement_directives and not changeset.is_legacy_bundle():
-            placement_directives += placement_directives[-1:] * \
-                (service['num_units'] - len(placement_directives))
+            placement_directives += (
+                placement_directives[-1:] *
+                (num_units - len(placement_directives)))
         placed_in_services = {}
-        for i in range(service['num_units']):
+        for i in range(num_units):
             unit = units['{}/{}'.format(service_name, i)]
             record = records[unit['record']]
             if i < len(placement_directives):

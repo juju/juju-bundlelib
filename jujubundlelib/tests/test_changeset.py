@@ -293,6 +293,11 @@ class TestHandleUnits(unittest.TestCase):
         changeset.handle_units(cs)
         self.assertEqual([], cs.recv())
 
+    def test_subordinate_service(self):
+        cs = changeset.ChangeSet({'services': {'logger': {'charm': 'logger'}}})
+        changeset.handle_units(cs)
+        self.assertEqual([], cs.recv())
+
     def test_unit_in_new_machine(self):
         cs = changeset.ChangeSet({
             'services': OrderedDict((
