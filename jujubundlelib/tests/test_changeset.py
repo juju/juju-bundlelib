@@ -326,6 +326,63 @@ class TestHandleUnits(unittest.TestCase):
             ],
             cs.recv())
 
+    def test_placement_unit_in_service(self):
+        cs = changeset.ChangeSet({
+            'services': OrderedDict((
+                ('wordpress', {
+                    'charm': 'cs:utopic/wordpress-0',
+                    'num_units': 3,
+                }),
+                ('django', {
+                    'charm': 'cs:trusty/django-42',
+                    'num_units': 2,
+                    'to': ['wordpress'],
+                }),
+            )),
+            'machines': {},
+        })
+        cs.services_added = {
+            'django': 'addService-1',
+            'wordpress': 'addService-42',
+        }
+        handler = changeset.handle_units(cs)
+        self.assertIsNone(handler)
+        self.assertEqual(
+            [
+                {
+                    'id': 'addUnit-0',
+                    'method': 'addUnit',
+                    'args': ['$addService-42', 1, None],
+                    'requires': ['addService-42'],
+                },
+                {
+
+                    'id': 'addUnit-1',
+                    'method': 'addUnit',
+                    'args': ['$addService-42', 1, None],
+                    'requires': ['addService-42'],
+                },
+                {
+                    'id': 'addUnit-2',
+                    'method': 'addUnit',
+                    'args': ['$addService-42', 1, None],
+                    'requires': ['addService-42'],
+                },
+                {
+                    'id': 'addUnit-3',
+                    'method': 'addUnit',
+                    'args': ['$addService-1', 1, '$addUnit-0'],
+                    'requires': ['addService-1', 'addUnit-0'],
+                },
+                {
+                    'id': 'addUnit-4',
+                    'method': 'addUnit',
+                    'args': ['$addService-1', 1, '$addUnit-1'],
+                    'requires': ['addService-1', 'addUnit-1'],
+                }
+            ],
+            cs.recv())
+
     def test_unit_colocation_to_unit(self):
         cs = changeset.ChangeSet({
             'services': OrderedDict((
@@ -475,6 +532,100 @@ class TestHandleUnits(unittest.TestCase):
             ],
             cs.recv())
 
+    def test_placement_unit_in_container_in_service(self):
+        cs = changeset.ChangeSet({
+            'services': OrderedDict((
+                ('wordpress', {
+                    'charm': 'cs:utopic/wordpress-0',
+                    'num_units': 1,
+                }),
+                ('rails', {
+                    'charm': 'cs:utopic/rails-0',
+                    'num_units': 2,
+                }),
+                ('django', {
+                    'charm': 'cs:trusty/django-42',
+                    'num_units': 3,
+                    'to': ['lxc:wordpress', 'kvm:rails'],
+                }),
+            )),
+            'machines': {},
+        })
+        cs.services_added = {
+            'django': 'addService-1',
+            'wordpress': 'addService-42',
+            'rails': 'addService-47',
+        }
+        handler = changeset.handle_units(cs)
+        self.assertIsNone(handler)
+        self.assertEqual(
+            [
+                {
+                    'id': 'addUnit-0',
+                    'method': 'addUnit',
+                    'args': ['$addService-42', 1, None],
+                    'requires': ['addService-42'],
+                },
+                {
+                    'id': 'addUnit-1',
+                    'method': 'addUnit',
+                    'args': ['$addService-47', 1, None],
+                    'requires': ['addService-47'],
+                },
+                {
+                    'id': 'addUnit-2',
+                    'method': 'addUnit',
+                    'args': ['$addService-47', 1, None],
+                    'requires': ['addService-47'],
+                },
+                {
+                    'id': 'addMachines-6',
+                    'method': 'addMachines',
+                    'args': [{
+                        'containerType': 'lxc',
+                        'parentId': '$addUnit-0',
+                    }],
+                    'requires': ['addUnit-0'],
+                },
+                {
+                    'id': 'addUnit-3',
+                    'method': 'addUnit',
+                    'args': ['$addService-1', 1, '$addMachines-6'],
+                    'requires': ['addService-1', 'addMachines-6'],
+                },
+                {
+                    'id': 'addMachines-7',
+                    'method': 'addMachines',
+                    'args': [{
+                        'containerType': 'kvm',
+                        'parentId': '$addUnit-1',
+                    }],
+                    'requires': ['addUnit-1'],
+                },
+                {
+                    'id': 'addUnit-4',
+                    'method': 'addUnit',
+                    'args': ['$addService-1', 1, '$addMachines-7'],
+                    'requires': ['addService-1', 'addMachines-7'],
+                },
+                {
+                    'id': 'addMachines-8',
+                    'method': 'addMachines',
+                    'args': [{
+                        'containerType': 'kvm',
+                        'parentId': '$addUnit-2',
+                    }],
+                    'requires': ['addUnit-2'],
+                },
+                {
+                    'id': 'addUnit-5',
+                    'method': 'addUnit',
+                    'args': ['$addService-1', 1, '$addMachines-8'],
+                    'requires': ['addService-1', 'addMachines-8'],
+                },
+            ],
+            cs.recv())
+
     def test_unit_in_preexisting_machine_container(self):
         cs = changeset.ChangeSet({
             'services': OrderedDict((
@@ -541,8 +692,60 @@ class TestHandleUnits(unittest.TestCase):
             cs.recv())
 
     def test_v3_placement_unit_in_service(self):
-        # TODO: implement unit to unit match.
-        pass
+        cs = changeset.ChangeSet({
+            'services': OrderedDict((
+                ('wordpress', {
+                    'charm': 'cs:utopic/wordpress-0',
+                    'num_units': 3,
+                }),
+                ('django', {
+                    'charm': 'cs:trusty/django-42',
+                    'num_units': 2,
+                    'to': ['wordpress', 'wordpress'],
+                }),
+            )),
+        })
+        cs.services_added = {
+            'django': 'addService-1',
+            'wordpress': 'addService-42',
+        }
+        handler = changeset.handle_units(cs)
+        self.assertIsNone(handler)
+        self.assertEqual(
+            [
+                {
+                    'id': 'addUnit-0',
+                    'method': 'addUnit',
+                    'args': ['$addService-42', 1, None],
+                    'requires': ['addService-42'],
+                },
+                {
+
+                    'id': 'addUnit-1',
+                    'method': 'addUnit',
+                    'args': ['$addService-42', 1, None],
+                    'requires': ['addService-42'],
+                },
+                {
+                    'id': 'addUnit-2',
+                    'method': 'addUnit',
+                    'args': ['$addService-42', 1, None],
+                    'requires': ['addService-42'],
+                },
+                {
+                    'id': 'addUnit-3',
+                    'method': 'addUnit',
+                    'args': ['$addService-1', 1, '$addUnit-0'],
+                    'requires': ['addService-1', 'addUnit-0'],
+                },
+                {
+                    'id': 'addUnit-4',
+                    'method': 'addUnit',
+                    'args': ['$addService-1', 1, '$addUnit-1'],
+                    'requires': ['addService-1', 'addUnit-1'],
+                }
+            ],
+            cs.recv())
 
     def test_v3_placement_unit_in_unit(self):
         cs = changeset.ChangeSet({
@@ -582,8 +785,50 @@ class TestHandleUnits(unittest.TestCase):
             cs.recv())
 
     def test_v3_placement_unit_in_lxc_in_service(self):
-        # TODO: implement unit to unit match.
-        pass
+        cs = changeset.ChangeSet({
+            'services': OrderedDict((
+                ('wordpress', {
+                    'charm': 'cs:utopic/wordpress-0',
+                    'num_units': 1,
+                }),
+                ('django', {
+                    'charm': 'cs:trusty/django-42',
+                    'num_units': 1,
+                    'to': 'lxc:wordpress',
+                }),
+            )),
+        })
+        cs.services_added = {
+            'django': 'addService-1',
+            'wordpress': 'addService-42',
+        }
+        handler = changeset.handle_units(cs)
+        self.assertIsNone(handler)
+        self.assertEqual(
+            [
+                {
+                    'id': 'addUnit-0',
+                    'method': 'addUnit',
+                    'args': ['$addService-42', 1, None],
+                    'requires': ['addService-42'],
+                },
+                {
+                    'id': 'addMachines-2',
+                    'method': 'addMachines',
+                    'args': [{
+                        'containerType': 'lxc',
+                        'parentId': '$addUnit-0',
+                    }],
+                    'requires': ['addUnit-0'],
+                },
+                {
+                    'id': 'addUnit-1',
+                    'method': 'addUnit',
+                    'args': ['$addService-1', 1, '$addMachines-2'],
+                    'requires': ['addService-1', 'addMachines-2'],
+                },
+            ],
+            cs.recv())
 
     def test_v3_placement_unit_in_lxc_in_unit(self):
         cs = changeset.ChangeSet({
