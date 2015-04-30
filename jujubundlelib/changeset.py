@@ -119,7 +119,7 @@ def handle_units(changeset):
     """Populate the change set with addUnit changes."""
     units, records = {}, {}
     for service_name, service in changeset.bundle['services'].items():
-        for i in range(service['num_units']):
+        for i in range(service.get('num_units', 0)):
             record_id = 'addUnit-{}'.format(changeset.next_action())
             unit_name = '{}/{}'.format(service_name, i)
             records[record_id] = {
@@ -143,37 +143,45 @@ def handle_units(changeset):
 def _handle_units_placement(changeset, units, records):
     """Ensure that requires and placement directives are taken into account."""
     for service_name, service in changeset.bundle['services'].items():
+        num_units = service.get('num_units')
+        if num_units is None:
+            # This is a subordinate service.
+            continue
         placement_directives = service.get('to', [])
         if not isinstance(placement_directives, (list, tuple)):
             placement_directives = [placement_directives]
         if placement_directives and not changeset.is_legacy_bundle():
-            placement_directives += placement_directives[-1:] * \
-                (service['num_units'] - len(placement_directives))
-        for i in range(service['num_units']):
+            placement_directives += (
+                placement_directives[-1:] *
+                (num_units - len(placement_directives)))
+        placed_in_services = {}
+        for i in range(num_units):
             unit = units['{}/{}'.format(service_name, i)]
             record = records[unit['record']]
             if i < len(placement_directives):
                 record = _handle_unit_placement(
-                    changeset, units, unit, record, placement_directives[i])
+                    changeset, units, unit, record, placement_directives[i],
+                    placed_in_services)
             changeset.send(record)
 
 
 def _handle_unit_placement(
-        changeset, units, unit, record, placement_directive):
+        changeset, units, unit, record, placement_directive,
+        placed_in_services):
     record = copy.deepcopy(record)
     if changeset.is_legacy_bundle():
         placement = models.parse_v3_unit_placement(placement_directive)
     else:
         placement = models.parse_v4_unit_placement(placement_directive)
     if placement.machine:
+        # The unit is placed on a machine.
         if placement.machine == 'new':
-            machine_record_id = 'addMachines-{}'.format(
-                changeset.next_action())
+            parent_record_id = 'addMachines-{}'.format(changeset.next_action())
             options = {}
             if placement.container_type:
                 options = {'containerType': placement.container_type}
             changeset.send({
-                'id': machine_record_id,
+                'id': parent_record_id,
                 'method': 'addMachines',
                 'args': [options],
                 'requires': [],
@@ -182,21 +190,36 @@ def _handle_unit_placement(
             if changeset.is_legacy_bundle():
                 record['args'][2] = '0'
                 return record
-            machine_record_id = changeset.machines_added[
-                placement.machine]
+            parent_record_id = changeset.machines_added[placement.machine]
             if placement.container_type:
-                machine_record_id = _handle_container_placement(
-                    changeset, placement, machine_record_id)
+                parent_record_id = _handle_container_placement(
+                    changeset, placement, parent_record_id)
     else:
-        placement_unit = '{}/{}'.format(
-            placement.service, placement.unit)
-        machine_record_id = units[placement_unit]['record']
+        # The unit is placed to a unit or to a service.
+        service = placement.service
+        unit_number = placement.unit
+        if unit_number is None:
+            unit_number = _next_unit_in_service(service, placed_in_services)
+        placement_unit = '{}/{}'.format(service, unit_number)
+        parent_record_id = units[placement_unit]['record']
         if placement.container_type:
-                machine_record_id = _handle_container_placement(
-                    changeset, placement, machine_record_id)
-    record['requires'].append(machine_record_id)
-    record['args'][2] = '${}'.format(machine_record_id)
+                parent_record_id = _handle_container_placement(
+                    changeset, placement, parent_record_id)
+    record['requires'].append(parent_record_id)
+    record['args'][2] = '${}'.format(parent_record_id)
     return record
+
+
+def _next_unit_in_service(service, placed_in_services):
+    """Return the unit number where to place a unit placed on a service.
+
+    Receive the service name and a dict mapping service names to the current
+    number of placed units in that service.
+    """
+    current = placed_in_services.get(service)
+    number = 0 if current is None else current + 1
+    placed_in_services[service] = number
+    return number
 
 
 def _handle_container_placement(changeset, placement, machine_record_id):

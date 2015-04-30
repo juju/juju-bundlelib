@@ -9,6 +9,7 @@ from __future__ import (
 import json
 import os
 import pprint
+import traceback
 import unittest
 try:
     from urllib.request import (
@@ -76,10 +77,17 @@ class TestFunctional(unittest.TestCase):
             except HTTPError as err:
                 print('skipping {}: {}'.format(ref, err))
                 continue
+            # Check bundle validation.
             errors = validation.validate(bundle)
             self.assertEqual(
                 [], errors,
                 'ref: {}\n{}\nerrors: {}'.format(
                     ref, pprint.pformat(bundle), errors))
-            changes = changeset.parse(bundle)
+            # Check change set generation.
+            try:
+                changes = list(changeset.parse(bundle))
+            except:
+                msg = 'changeset parsing error\nref: {}\n{}\n{}'.format(
+                    ref, pprint.pformat(bundle), traceback.format_exc())
+                self.fail(msg)
             self.assertTrue(changes)
