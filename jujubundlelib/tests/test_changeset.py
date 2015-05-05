@@ -149,7 +149,11 @@ class TestHandleServices(unittest.TestCase):
                 {
                     'id': 'setAnnotations-7',
                     'method': 'setAnnotations',
-                    'args': [{'gui-x': 100, 'gui-y': 100}],
+                    'args': [
+                        '$addService-6',
+                        'service',
+                        {'gui-x': 100, 'gui-y': 100},
+                    ],
                     'requires': ['addService-6']
                 },
             ],
@@ -205,7 +209,11 @@ class TestHandleMachines(unittest.TestCase):
                 {
                     'id': 'setAnnotations-4',
                     'method': 'setAnnotations',
-                    'args': [{'foo': 'bar'}],
+                    'args': [
+                        '$addMachines-3',
+                        'machine',
+                        {'foo': 'bar'},
+                    ],
                     'requires': ['addMachines-3'],
                 },
             ],

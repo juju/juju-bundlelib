@@ -78,6 +78,8 @@ def handle_services(changeset):
                 'id': 'setAnnotations-{}'.format(changeset.next_action()),
                 'method': 'setAnnotations',
                 'args': [
+                    '${}'.format(record_id),
+                    'service',
                     service['annotations'],
                 ],
                 'requires': [record_id],
@@ -107,6 +109,8 @@ def handle_machines(changeset):
                 'id': 'setAnnotations-{}'.format(changeset.next_action()),
                 'method': 'setAnnotations',
                 'args': [
+                    '${}'.format(record_id),
+                    'machine',
                     machine['annotations'],
                 ],
                 'requires': [record_id],
