@@ -88,6 +88,13 @@ class TestHandleServices(unittest.TestCase):
                         'key2': 'value2',
                     }
                 }),
+                ('haproxy', {
+                    'charm': 'cs:trusty/haproxy-5',
+                    'annotations': {
+                        'gui-x': 100,
+                        'gui-y': 100,
+                    }
+                }),
             ))
         })
         handler = changeset.handle_services(cs)
@@ -127,6 +134,28 @@ class TestHandleServices(unittest.TestCase):
                     }],
                     'requires': ['addCharm-2']
                 },
+                {
+                    'id': 'addCharm-5',
+                    'method': 'addCharm',
+                    'args': ['cs:trusty/haproxy-5'],
+                    'requires': []
+                },
+                {
+                    'id': 'addService-6',
+                    'method': 'deploy',
+                    'args': ['cs:trusty/haproxy-5', 'haproxy', {}],
+                    'requires': ['addCharm-5']
+                },
+                {
+                    'id': 'setAnnotations-7',
+                    'method': 'setAnnotations',
+                    'args': [
+                        '$addService-6',
+                        'service',
+                        {'gui-x': 100, 'gui-y': 100},
+                    ],
+                    'requires': ['addService-6']
+                },
             ],
             cs.recv())
 
@@ -146,6 +175,7 @@ class TestHandleMachines(unittest.TestCase):
                 ('1', {'series': 'vivid'}),
                 ('2', {}),
                 ('42', {'constraints': {'cpu-cores': 4}}),
+                ('23', {'annotations': {'foo': 'bar'}}),
             ))
         })
         handler = changeset.handle_machines(cs)
@@ -169,6 +199,22 @@ class TestHandleMachines(unittest.TestCase):
                     'method': 'addMachines',
                     'args': [{'constraints': {'cpu-cores': 4}, 'series': ''}],
                     'requires': [],
+                },
+                {
+                    'id': 'addMachines-3',
+                    'method': 'addMachines',
+                    'args': [{'constraints': {}, 'series': ''}],
+                    'requires': [],
+                },
+                {
+                    'id': 'setAnnotations-4',
+                    'method': 'setAnnotations',
+                    'args': [
+                        '$addMachines-3',
+                        'machine',
+                        {'foo': 'bar'},
+                    ],
+                    'requires': ['addMachines-3'],
                 },
             ],
             cs.recv())

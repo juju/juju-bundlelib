@@ -73,6 +73,18 @@ def handle_services(changeset):
             'requires': [charms[service['charm']]],
         })
         changeset.services_added[service_name] = record_id
+        if 'annotations' in service:
+            changeset.send({
+                'id': 'setAnnotations-{}'.format(changeset.next_action()),
+                'method': 'setAnnotations',
+                'args': [
+                    '${}'.format(record_id),
+                    'service',
+                    service['annotations'],
+                ],
+                'requires': [record_id],
+            })
+
     return handle_machines
 
 
@@ -92,6 +104,17 @@ def handle_machines(changeset):
             'requires': [],
         })
         changeset.machines_added[str(machine_name)] = record_id
+        if 'annotations' in machine:
+            changeset.send({
+                'id': 'setAnnotations-{}'.format(changeset.next_action()),
+                'method': 'setAnnotations',
+                'args': [
+                    '${}'.format(record_id),
+                    'machine',
+                    machine['annotations'],
+                ],
+                'requires': [record_id],
+            })
     return handle_relations
 
 
