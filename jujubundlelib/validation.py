@@ -336,16 +336,19 @@ def _validate_placement(placement, services, machines, charm, add_error):
                 'placement {} refers to a non-existent machine {}'
                 ''.format(placement, unit_placement.machine))
             return
-        series = machine.get('series')
-        if charm.series and series and charm.series != series:
-            # If the machine series is invalid, ignore this check, as an error
-            # for the machine will be added elsewhere.
-            errors = []
-            _validate_series(series, '', errors.append)
-            if not errors:
-                add_error(
-                    'charm {} cannot be deployed to machine with different '
-                    'series {}'.format(charm, series))
+        # If the unit is "hulk smashed", then we need to check that the charm
+        # and the machine series match.
+        if not unit_placement.container_type:
+            series = machine.get('series')
+            if charm.series and series and charm.series != series:
+                # If the machine series is invalid, ignore this check, as an
+                # error for the machine will be added elsewhere.
+                errors = []
+                _validate_series(series, '', errors.append)
+                if not errors:
+                    add_error(
+                        'charm {} cannot be deployed to machine with '
+                        'different series {}'.format(charm, series))
         return machine_id
 
 
