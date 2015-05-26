@@ -156,6 +156,21 @@ _validation_tests = {
             },
         },
     ),
+    'test_valid_service_placement_v4_bundle': (
+        [],
+        {
+            'services': {
+                'django': {
+                    'charm': 'trusty/django',
+                    'num_units': 1,
+                    'to': ['kvm:2'],
+                },
+            },
+            'machines': {
+                '2': {'series': 'precise'},
+            },
+        },
+    ),
     'test_valid_relations': (
         [],
         {
