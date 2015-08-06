@@ -43,6 +43,19 @@ _validation_tests = {
             'machines': {1: {}},
         },
     ),
+    'test_valid_bundle_machines_none': (
+        [],
+        {
+            'services': {
+                'django': {
+                    'charm': 'cs:trusty/django-42',
+                    'num_units': 1,
+                    'to': ['1'],
+                },
+            },
+            'machines': {1: None},
+        },
+    ),
     'test_valid_bundle_relations': (
         [],
         {
@@ -593,6 +606,19 @@ _validation_tests = {
                 },
                 '-47': {},
             },
+        },
+    ),
+    'test_invalid_machines_type': (
+        ['machine 1 does not appear to be well-formed'],
+        {
+            'services': {
+                'django': {
+                    'charm': 'cs:trusty/django-42',
+                    'num_units': 1,
+                    'to': ['1'],
+                },
+            },
+            'machines': {1: 42},
         },
     ),
     'test_invalid_machines_constraints': (
