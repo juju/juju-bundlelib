@@ -91,6 +91,9 @@ def handle_services(changeset):
 def handle_machines(changeset):
     """Populate the change set with addMachines changes."""
     for machine_name, machine in changeset.bundle.get('machines', {}).items():
+        if machine is None:
+            # We allow the machine value to be unset in the YAML.
+            machine = {}
         record_id = 'addMachines-{}'.format(changeset.next_action())
         changeset.send({
             'id': record_id,

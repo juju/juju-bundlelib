@@ -224,6 +224,16 @@ class TestHandleMachines(unittest.TestCase):
         changeset.handle_machines(cs)
         self.assertEqual([], cs.recv())
 
+    def test_none_machine(self):
+        cs = changeset.ChangeSet({'machines': {42: None}})
+        changeset.handle_machines(cs)
+        self.assertEqual([{
+            'id': 'addMachines-0',
+            'method': 'addMachines',
+            'args': [{'constraints': {}, 'series': ''}],
+            'requires': [],
+        }], cs.recv())
+
 
 class TestHandleRelations(unittest.TestCase):
 
