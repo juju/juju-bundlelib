@@ -339,7 +339,8 @@ def _validate_placement(placement, services, machines, charm, add_error):
             return
         machine = machines[machine_id]
         if not isdict(machine):
-            # This error is notified while validating machines.
+            # Ignore this error here, as it is emitted while validating the
+            # machines section of the bundle.
             machine = {}
         # If the unit is "hulk smashed", then we need to check that the charm
         # and the machine series match.
