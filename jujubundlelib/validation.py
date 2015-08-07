@@ -330,12 +330,18 @@ def _validate_placement(placement, services, machines, charm, add_error):
         (unit_placement.machine != 'new')
     ):
         machine_id = int(unit_placement.machine)
-        machine = machines.get(machine_id)
-        if machine is None:
+        # A machine can be included in machines but its value can be None.
+        # This is so that we are compatible with go-style YAML unmarshaling.
+        if machine_id not in machines:
             add_error(
                 'placement {} refers to a non-existent machine {}'
                 ''.format(placement, unit_placement.machine))
             return
+        machine = machines[machine_id]
+        if not isdict(machine):
+            # Ignore this error here, as it is emitted while validating the
+            # machines section of the bundle.
+            machine = {}
         # If the unit is "hulk smashed", then we need to check that the charm
         # and the machine series match.
         if not unit_placement.container_type:
@@ -365,6 +371,13 @@ def _validate_machines(machines, add_error):
             add_error(
                 'machine {} has an invalid id, must be positive digit'
                 ''.format(machine_id))
+        if machine is None:
+            continue
+        elif not isdict(machine):
+            add_error(
+                'machine {} does not appear to be well-formed'
+                ''.format(machine_id))
+            continue
         label = 'machine {}'.format(machine_id)
         _validate_constraints(machine.get('constraints'), label, add_error)
         _validate_series(machine.get('series'), label, add_error)
