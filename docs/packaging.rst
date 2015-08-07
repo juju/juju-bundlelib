@@ -42,6 +42,7 @@ to be pushed in the Juju Stable PPA (``ppa:juju/stable``).
 
 * Commit your changes and push them to the master branch::
 
+    cd debian
     git commit -a -m "Update for version 0.1.7" && git push
 
 * Remove the git repository from the debian directory::
@@ -50,11 +51,12 @@ to be pushed in the Juju Stable PPA (``ppa:juju/stable``).
 
 * Build the package and sign it with your GPG key, for instance::
 
+    cd ..
     debuild -S -kXXXXXXX
 
 * Move back to the initial directory, where the dsc file has been created::
 
-    cd ../..
+    cd ..
 
 * Upload the package to the PPA, and wait for it to build::
 
