@@ -7,7 +7,7 @@ to be pushed in the Juju Stable PPA (``ppa:juju/stable``).
 
 * Install the required packages::
 
-    sudo apt-get install debhelper devscripts git python-setuptools
+    sudo apt-get install debhelper devscripts git python-setuptools ubuntu-deb-tools
 
 * Set up your Debian environment variables, for instance::
 
@@ -35,10 +35,11 @@ to be pushed in the Juju Stable PPA (``ppa:juju/stable``).
     git clone git@github.com:juju/juju-bundlelib-packaging.git jujubundlelib-0.1.7/debian
 
 * Update the package changelog, ensuring the version in the changelog reflects
-  the PyPI one (in this examples it is 0.1.7)::
+  the PyPI one (in this examples it is 0.1.7) and the distribution is
+  ubuntu+1 (wily atm)::
 
     cd jujubundlelib-0.1.7
-    dch -i
+    dch -v=0.1.7-1 --release --distribution=wily
 
 * Commit your changes and push them to the master branch::
 
@@ -60,9 +61,9 @@ to be pushed in the Juju Stable PPA (``ppa:juju/stable``).
 
 * Upload the package to the PPA, and wait for it to build::
 
-    dput ppa:juju/stable jujubundlelib_0.1.7-1_source.changes
+    for release in "precise trusty vivid wily"; do
+        backportpackage -u ppa:juju/stable -r -d $release -S ~ppa1 -y jujubundlelib_0.1.7-1_source.dsc
+    done
 
 * The building process can be followed at
   https://launchpad.net/~juju/+archive/ubuntu/stable/+packages
-  Once the build is complete, copy the resulting binaries to the other
-  supported series (e.g. precise, utopic, vivid...).
