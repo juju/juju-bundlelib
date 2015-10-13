@@ -24,6 +24,7 @@ _CONSTRAINTS = (
     'mem',
     'networks',
     'root-disk',
+    'spaces',
     'tags',
 )
 
