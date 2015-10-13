@@ -46,9 +46,9 @@ class ChangeSet(object):
 
 
 def handle_services(changeset):
-    """Populate the change set with addCharm and addService changes."""
+    """Populate the change set with addCharm and deploy changes."""
     charms = {}
-    for service_name, service in changeset.bundle['services'].items():
+    for service_name, service in sorted(changeset.bundle['services'].items()):
         # Add the addCharm record if one hasn't been added yet.
         if service['charm'] not in charms:
             record_id = 'addCharm-{}'.format(changeset.next_action())
@@ -61,14 +61,15 @@ def handle_services(changeset):
             charms[service['charm']] = record_id
 
         # Add the deploy record for this service.
-        record_id = 'addService-{}'.format(changeset.next_action())
+        record_id = 'deploy-{}'.format(changeset.next_action())
         changeset.send({
             'id': record_id,
             'method': 'deploy',
             'args': [
-                service['charm'],
+                '${}'.format(charms[service['charm']]),
                 service_name,
-                service.get('options', {})
+                service.get('options', {}),
+                service.get('constraints', ''),
             ],
             'requires': [charms[service['charm']]],
         })
@@ -90,7 +91,8 @@ def handle_services(changeset):
 
 def handle_machines(changeset):
     """Populate the change set with addMachines changes."""
-    for machine_name, machine in changeset.bundle.get('machines', {}).items():
+    machines = sorted(changeset.bundle.get('machines', {}).items())
+    for machine_name, machine in machines:
         if machine is None:
             # We allow the machine value to be unset in the YAML.
             machine = {}
@@ -101,7 +103,7 @@ def handle_machines(changeset):
             'args': [
                 {
                     'series': machine.get('series', ''),
-                    'constraints': machine.get('constraints', {}),
+                    'constraints': machine.get('constraints', ''),
                 },
             ],
             'requires': [],
@@ -144,7 +146,7 @@ def handle_relations(changeset):
 def handle_units(changeset):
     """Populate the change set with addUnit changes."""
     units, records = {}, {}
-    for service_name, service in changeset.bundle['services'].items():
+    for service_name, service in sorted(changeset.bundle['services'].items()):
         for i in range(service.get('num_units', 0)):
             record_id = 'addUnit-{}'.format(changeset.next_action())
             unit_name = '{}/{}'.format(service_name, i)
@@ -153,7 +155,6 @@ def handle_units(changeset):
                 'method': 'addUnit',
                 'args': [
                     '${}'.format(changeset.services_added[service_name]),
-                    1,
                     None,
                 ],
                 'requires': [changeset.services_added[service_name]],
@@ -168,7 +169,7 @@ def handle_units(changeset):
 
 def _handle_units_placement(changeset, units, records):
     """Ensure that requires and placement directives are taken into account."""
-    for service_name, service in changeset.bundle['services'].items():
+    for service_name, service in sorted(changeset.bundle['services'].items()):
         num_units = service.get('num_units')
         if num_units is None:
             # This is a subordinate service.
@@ -214,7 +215,7 @@ def _handle_unit_placement(
             })
         else:
             if changeset.is_legacy_bundle():
-                record['args'][2] = '0'
+                record['args'][-1] = '0'
                 return record
             parent_record_id = changeset.machines_added[placement.machine]
             if placement.container_type:
@@ -232,7 +233,7 @@ def _handle_unit_placement(
                 parent_record_id = _handle_container_placement(
                     changeset, placement, parent_record_id)
     record['requires'].append(parent_record_id)
-    record['args'][2] = '${}'.format(parent_record_id)
+    record['args'][-1] = '${}'.format(parent_record_id)
     return record
 
 
