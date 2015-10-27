@@ -7,7 +7,7 @@ to be pushed in the Juju Stable PPA (``ppa:juju/stable``).
 
 * Install the required packages::
 
-    sudo apt-get install debhelper devscripts git python-setuptools ubuntu-deb-tools
+    sudo apt-get install debhelper devscripts git python-setuptools ubuntu-dev-tools
 
 * Set up your Debian environment variables, for instance::
 
@@ -39,7 +39,7 @@ to be pushed in the Juju Stable PPA (``ppa:juju/stable``).
   ubuntu+1 (wily atm)::
 
     cd jujubundlelib-0.1.7
-    dch -v=0.1.7-1 --release --distribution=wily
+    dch -v=0.1.7-1 --distribution=wily
 
 * Commit your changes and push them to the master branch::
 
@@ -62,7 +62,7 @@ to be pushed in the Juju Stable PPA (``ppa:juju/stable``).
 * Upload the package to the PPA, and wait for it to build::
 
     for release in "precise trusty vivid wily"; do
-        backportpackage -u ppa:juju/stable -r -d $release -S ~ppa1 -y jujubundlelib_0.1.7-1_source.dsc
+        backportpackage -u ppa:juju/stable -r -d $release -S ~ppa1 -y jujubundlelib_*.dsc
     done
 
 * The building process can be followed at
