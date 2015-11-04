@@ -74,6 +74,17 @@ def handle_services(changeset):
             'requires': [charms[service['charm']]],
         })
         changeset.services_added[service_name] = record_id
+
+        # Expose this service if required.
+        if service.get('expose'):
+            changeset.send({
+                'id': 'expose-{}'.format(changeset.next_action()),
+                'method': 'expose',
+                'args': ['${}'.format(record_id)],
+                'requires': [record_id],
+            })
+
+        # Set the annotations for this service.
         if 'annotations' in service:
             changeset.send({
                 'id': 'setAnnotations-{}'.format(changeset.next_action()),

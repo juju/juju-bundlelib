@@ -79,6 +79,7 @@ class TestHandleServices(unittest.TestCase):
                 },
                 'mysql-master': {
                     'charm': 'cs:utopic/mysql-47',
+                    'expose': False,
                     'constraints': 'cpu-cores=4 mem=42G',
                 },
                 'mysql-slave': {
@@ -90,6 +91,7 @@ class TestHandleServices(unittest.TestCase):
                 },
                 'haproxy': {
                     'charm': 'cs:trusty/haproxy-5',
+                    'expose': True,
                     'annotations': {
                         'gui-x': 100,
                         'gui-y': 100,
@@ -126,7 +128,13 @@ class TestHandleServices(unittest.TestCase):
                     'requires': ['addCharm-2'],
                 },
                 {
-                    'id': 'setAnnotations-4',
+                    'id': 'expose-4',
+                    'method': 'expose',
+                    'args': ['$deploy-3'],
+                    'requires': ['deploy-3'],
+                },
+                {
+                    'id': 'setAnnotations-5',
                     'method': 'setAnnotations',
                     'args': [
                         '$deploy-3',
@@ -136,30 +144,30 @@ class TestHandleServices(unittest.TestCase):
                     'requires': ['deploy-3'],
                 },
                 {
-                    'id': 'addCharm-5',
+                    'id': 'addCharm-6',
                     'method': 'addCharm',
                     'args': ['cs:utopic/mysql-47'],
                     'requires': [],
                 },
                 {
-                    'id': 'deploy-6',
+                    'id': 'deploy-7',
                     'method': 'deploy',
                     'args': [
-                        '$addCharm-5',
+                        '$addCharm-6',
                         'mysql-master',
                         {},
                         'cpu-cores=4 mem=42G',
                     ],
-                    'requires': ['addCharm-5'],
+                    'requires': ['addCharm-6'],
                 },
                 {
-                    'id': 'deploy-7',
+                    'id': 'deploy-8',
                     'method': 'deploy',
-                    'args': ['$addCharm-5', 'mysql-slave', {
+                    'args': ['$addCharm-6', 'mysql-slave', {
                         'key1': 'value1',
                         'key2': 'value2',
                     }, ''],
-                    'requires': ['addCharm-5'],
+                    'requires': ['addCharm-6'],
                 },
             ],
             cs.recv())

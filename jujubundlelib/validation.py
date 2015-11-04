@@ -125,6 +125,9 @@ def _validate_services(services, machines, add_error):
     for service_name, service in services.items():
         if not isstring(service_name):
             add_error('service name {} must be a string'.format(service_name))
+        if service.get('expose') not in (True, False, None):
+            add_error(
+                'invalid expose value for service {}'.format(service_name))
         # Validate and retrieve the service charm URL and number of units.
         charm = _validate_charm(service.get('charm'), service_name, add_error)
         num_units = _validate_num_units(
