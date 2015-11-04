@@ -30,6 +30,24 @@ _validation_tests = {
             },
         },
     ),
+    'test_valid_bundle_exposed': (
+        [],
+        {
+            'series': 'wily',
+            'services': {
+                'django': {'charm': 'cs:trusty/django-42', 'expose': True},
+            },
+        },
+    ),
+    'test_valid_bundle_unexposed': (
+        [],
+        {
+            'series': 'wily',
+            'services': {
+                'django': {'charm': 'cs:trusty/django-42', 'expose': False},
+            },
+        },
+    ),
     'test_valid_bundle_machines': (
         [],
         {
@@ -444,6 +462,15 @@ _validation_tests = {
                     'charm': 'cs:trusty/haproxy',
                     'annotations': {'key1': 'value1', None: 42},
                 },
+            },
+        },
+    ),
+    'test_invalid_service_expose_flag': (
+        ['invalid expose value for service django'],
+        {
+            'series': 'wily',
+            'services': {
+                'django': {'charm': 'cs:trusty/django-42', 'expose': 'bad'},
             },
         },
     ),
