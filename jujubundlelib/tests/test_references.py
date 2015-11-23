@@ -13,10 +13,10 @@ from jujubundlelib.tests import helpers
 
 
 def make_reference(
-        schema='cs', user='myuser', series='precise', name='juju-gui',
-        revision=42):
+        schema='cs', user='myuser', channel='', series='precise',
+        name='juju-gui', revision=42):
     """Create and return a Reference instance."""
-    return references.Reference(schema, user, series, name, revision)
+    return references.Reference(schema, user, channel, series, name, revision)
 
 
 class TestReference(unittest.TestCase):
@@ -62,6 +62,71 @@ class TestReference(unittest.TestCase):
         (make_reference(user='', series='', revision=None),
          'cs:juju-gui'),
 
+        # Fully qualified under development.
+        (make_reference(channel=references.DEVELOPMENT_CHANNEL),
+         'cs:~myuser/development/precise/juju-gui-42'),
+
+        # Promulgated charm under development.
+        (make_reference(user='', channel=references.DEVELOPMENT_CHANNEL),
+         'cs:development/precise/juju-gui-42'),
+
+        # Custom name, series and revision under development.
+        (make_reference(
+            channel=references.DEVELOPMENT_CHANNEL, name='django',
+            series='vivid', revision=0),
+         'cs:~myuser/development/vivid/django-0'),
+
+        # No series under development.
+        (make_reference(channel=references.DEVELOPMENT_CHANNEL, series=''),
+         'cs:~myuser/development/juju-gui-42'),
+
+        # Promulgated charm without series under development.
+        (make_reference(
+            user='', channel=references.DEVELOPMENT_CHANNEL, series=''),
+         'cs:development/juju-gui-42'),
+
+        # Promulgated charm without revision under development.
+        (make_reference(
+            user='', channel=references.DEVELOPMENT_CHANNEL, revision=None),
+         'cs:development/precise/juju-gui'),
+
+        # No series and revision under development.
+        (make_reference(
+            channel=references.DEVELOPMENT_CHANNEL, series='', revision=None),
+         'cs:~myuser/development/juju-gui'),
+    )
+
+    jujucharms_tests = (
+        (make_reference(),
+         'u/myuser/juju-gui/precise/42'),
+        (make_reference(schema='local'),
+         'u/myuser/juju-gui/precise/42'),
+        (make_reference(user=''),
+         'juju-gui/precise/42'),
+        (make_reference(user='dalek', revision=None, series='bundle'),
+         'u/dalek/juju-gui'),
+        (make_reference(name='django', series='vivid', revision=0),
+         'u/myuser/django/vivid/0'),
+        (make_reference(user='', revision=None),
+         'juju-gui/precise'),
+        (make_reference(user='', series='bundle', revision=None),
+         'juju-gui'),
+        (make_reference(channel=references.DEVELOPMENT_CHANNEL),
+         'u/myuser/development/juju-gui/precise/42'),
+        (make_reference(user='', channel=references.DEVELOPMENT_CHANNEL),
+         'development/juju-gui/precise/42'),
+        (make_reference(user='dalek', channel=references.DEVELOPMENT_CHANNEL,
+                        revision=None, series='bundle'),
+         'u/dalek/development/juju-gui'),
+        (make_reference(channel=references.DEVELOPMENT_CHANNEL, name='django',
+                        series='vivid', revision=0),
+         'u/myuser/development/django/vivid/0'),
+        (make_reference(user='', channel=references.DEVELOPMENT_CHANNEL,
+                        revision=None),
+         'development/juju-gui/precise'),
+        (make_reference(user='', channel=references.DEVELOPMENT_CHANNEL,
+                        series='bundle', revision=None),
+         'development/juju-gui'),
     )
 
     def test_attributes(self):
@@ -69,6 +134,7 @@ class TestReference(unittest.TestCase):
         ref = make_reference()
         self.assertEqual('cs', ref.schema)
         self.assertEqual('myuser', ref.user)
+        self.assertEqual('', ref.channel)
         self.assertEqual('precise', ref.series)
         self.assertEqual('juju-gui', ref.name)
         self.assertEqual(42, ref.revision)
@@ -110,45 +176,13 @@ class TestReference(unittest.TestCase):
 
     def test_jujucharms_id(self):
         # It is possible to return the reference identifier in jujucharms.com.
-        tests = (
-            (make_reference(),
-             'u/myuser/juju-gui/precise/42'),
-            (make_reference(schema='local'),
-             'u/myuser/juju-gui/precise/42'),
-            (make_reference(user=''),
-             'juju-gui/precise/42'),
-            (make_reference(user='dalek', revision=None, series='bundle'),
-             'u/dalek/juju-gui'),
-            (make_reference(name='django', series='vivid', revision=0),
-             'u/myuser/django/vivid/0'),
-            (make_reference(user='', revision=None),
-             'juju-gui/precise'),
-            (make_reference(user='', series='bundle', revision=None),
-             'juju-gui'),
-        )
-        for ref, expected_value in tests:
+        for ref, expected_value in self.jujucharms_tests:
             self.assertEqual(expected_value, ref.jujucharms_id())
 
     def test_jujucharms_url(self):
         # The corresponding charm or bundle page in jujucharms.com is correctly
         # returned.
-        tests = (
-            (make_reference(),
-             'u/myuser/juju-gui/precise/42'),
-            (make_reference(schema='local'),
-             'u/myuser/juju-gui/precise/42'),
-            (make_reference(user=''),
-             'juju-gui/precise/42'),
-            (make_reference(user='dalek', revision=None, series='bundle'),
-             'u/dalek/juju-gui'),
-            (make_reference(name='django', series='vivid', revision=0),
-             'u/myuser/django/vivid/0'),
-            (make_reference(user='', revision=None),
-             'juju-gui/precise'),
-            (make_reference(user='', series='bundle', revision=None),
-             'juju-gui'),
-        )
-        for ref, expected_value in tests:
+        for ref, expected_value in self.jujucharms_tests:
             expected_url = references.JUJUCHARMS_URL + expected_value
             self.assertEqual(expected_url, ref.jujucharms_url())
 
@@ -177,6 +211,9 @@ class TestReference(unittest.TestCase):
         self.assertEqual(make_reference(), make_reference())
         self.assertEqual(make_reference(user=''), make_reference(user=''))
         self.assertEqual(
+            make_reference(channel=references.DEVELOPMENT_CHANNEL),
+            make_reference(channel=references.DEVELOPMENT_CHANNEL))
+        self.assertEqual(
             make_reference(revision=None), make_reference(revision=None))
 
     def test_equality_different_references(self):
@@ -186,6 +223,8 @@ class TestReference(unittest.TestCase):
              make_reference(schema='local')),
             (make_reference(user=''),
              make_reference(user='who')),
+            (make_reference(),
+             make_reference(channel=references.DEVELOPMENT_CHANNEL)),
             (make_reference(series='trusty'),
              make_reference(series='vivid')),
             (make_reference(name='django'),
@@ -216,12 +255,31 @@ class TestReference(unittest.TestCase):
         self.assertTrue(make_reference().is_fully_qualified())
         self.assertTrue(make_reference(schema='local').is_fully_qualified())
         self.assertTrue(make_reference(user='').is_fully_qualified())
+        self.assertTrue(make_reference(
+            channel=references.DEVELOPMENT_CHANNEL).is_fully_qualified())
         self.assertTrue(make_reference(revision=0).is_fully_qualified())
 
     def test_is_not_fully_qualified(self):
         # False is returned if the reference is not fully qualified.
         self.assertFalse(make_reference(series='').is_fully_qualified())
         self.assertFalse(make_reference(revision=None).is_fully_qualified())
+
+    def test_is_under_development(self):
+        # True is returned if the reference is under development.
+        self.assertTrue(make_reference(
+            channel=references.DEVELOPMENT_CHANNEL).is_under_development())
+        self.assertTrue(make_reference(
+            user='',
+            channel=references.DEVELOPMENT_CHANNEL).is_under_development())
+        self.assertTrue(make_reference(
+            channel=references.DEVELOPMENT_CHANNEL,
+            revision=0).is_under_development())
+
+    def test_is_not_under_development(self):
+        # False is returned if the reference is not under development.
+        self.assertFalse(make_reference(schema='local').is_under_development())
+        self.assertFalse(make_reference(series='').is_under_development())
+        self.assertFalse(make_reference(revision=None).is_under_development())
 
 
 class TestReferenceSimilar(unittest.TestCase):
@@ -230,6 +288,8 @@ class TestReferenceSimilar(unittest.TestCase):
         # True is returned if the references are similar.
         ref = make_reference()
         self.assertTrue(ref.similar(make_reference()))
+        self.assertTrue(ref.similar(make_reference(
+            channel=references.DEVELOPMENT_CHANNEL)))
         self.assertTrue(ref.similar(make_reference(series='utopic')))
         self.assertTrue(
             ref.similar(make_reference(series='trusty', revision=0)))
@@ -239,6 +299,8 @@ class TestReferenceSimilar(unittest.TestCase):
         ref = make_reference(user='')
         self.assertTrue(ref.similar(ref))
         self.assertTrue(ref.similar(make_reference(user='', series='utopic')))
+        self.assertTrue(ref.similar(make_reference(
+            user='', channel=references.DEVELOPMENT_CHANNEL)))
         self.assertTrue(
             ref.similar(make_reference(user='', series='trusty', revision=0)))
 
@@ -277,19 +339,18 @@ class TestReferenceFromFullyQualifiedUrl(
         with self.assert_value_error(expected_error):
             references.Reference.from_fully_qualified_url('precise/juju-gui')
 
+    def test_no_url_error(self):
+        # A ValueError is raised if the URL is empty.
+        expected_error = b'URL has no schema: '
+        with self.assert_value_error(expected_error):
+            references.Reference.from_fully_qualified_url('')
+
     def test_invalid_schema_error(self):
         # A ValueError is raised if the URL schema is not valid.
         expected_error = b'URL has invalid schema: http'
         with self.assert_value_error(expected_error):
             references.Reference.from_fully_qualified_url(
                 'http:precise/juju-gui')
-
-    def test_invalid_user_form_error(self):
-        # A ValueError is raised if the user form is not valid.
-        expected_error = b'URL has invalid user name form: jean-luc'
-        with self.assert_value_error(expected_error):
-            references.Reference.from_fully_qualified_url(
-                'cs:jean-luc/precise/juju-gui')
 
     def test_invalid_user_name_error(self):
         # A ValueError is raised if the user name is not valid.
@@ -307,12 +368,37 @@ class TestReferenceFromFullyQualifiedUrl(
             references.Reference.from_fully_qualified_url(
                 'local:~jean-luc/precise/juju-gui')
 
-    def test_invalid_form_error(self):
-        # A ValueError is raised if the URL is not valid.
-        expected_error = b'URL has invalid form: cs:~user/series/name/what-?'
+    def test_invalid_channel_error(self):
+        # A ValueError is raised if the channel is not valid.
+        expected_error = (
+            b'URL has invalid form: cs:~jean-luc/bad-wolf/wily/juju-gui')
         with self.assert_value_error(expected_error):
             references.Reference.from_fully_qualified_url(
-                'cs:~user/series/name/what-?')
+                'cs:~jean-luc/bad-wolf/wily/juju-gui')
+
+    def test_local_channel_error(self):
+        # A ValueError is raised if a channel is specified on a local entity.
+        expected_error = (
+            b'local entity URL with channel: '
+            b'local:development/precise/juju-gui')
+        with self.assert_value_error(expected_error):
+            references.Reference.from_fully_qualified_url(
+                'local:development/precise/juju-gui')
+
+    def test_invalid_form_error(self):
+        # A ValueError is raised if the URL is not valid.
+        expected_error = (
+            b'URL has invalid form: cs:~user/development/series/name/what-?')
+        with self.assert_value_error(expected_error):
+            references.Reference.from_fully_qualified_url(
+                'cs:~user/development/series/name/what-?')
+
+    def test_user_only_error(self):
+        # A ValueError is raised if the URL only includes the user.
+        expected_error = (
+            b'URL has invalid form: cs:~user')
+        with self.assert_value_error(expected_error):
+            references.Reference.from_fully_qualified_url('cs:~user')
 
     def test_invalid_series_error(self):
         # A ValueError is raised if the series is not valid.
@@ -320,6 +406,13 @@ class TestReferenceFromFullyQualifiedUrl(
         with self.assert_value_error(expected_error):
             references.Reference.from_fully_qualified_url(
                 'cs:boo!/juju-gui-42')
+
+    def test_no_series_error(self):
+        # A ValueError is raised if the series is not specified.
+        expected_error = b'URL has invalid form: cs:~user/juju-gui-42'
+        with self.assert_value_error(expected_error):
+            references.Reference.from_fully_qualified_url(
+                'cs:~user/juju-gui-42')
 
     def test_no_revision_error(self):
         # A ValueError is raised if the entity revision is missing.
@@ -351,6 +444,11 @@ class TestReferenceFromFullyQualifiedUrl(
              make_reference(user='', series='trusty')),
             ('local:precise/juju-gui-42',
              make_reference(schema='local', user='')),
+            ('cs:~myuser/development/precise/juju-gui-42',
+             make_reference(channel=references.DEVELOPMENT_CHANNEL)),
+            ('cs:development/trusty/juju-gui-42',
+             make_reference(user='', channel=references.DEVELOPMENT_CHANNEL,
+                            series='trusty')),
         )
         for url, expected_ref in tests:
             ref = references.Reference.from_fully_qualified_url(url)
@@ -366,12 +464,11 @@ class TestReferenceFromString(
         with self.assert_value_error(expected_error):
             references.Reference.from_string('http:precise/juju-gui')
 
-    def test_invalid_user_form_error(self):
-        # A ValueError is raised if the user form is not valid.
-        expected_error = b'URL has invalid user name form: jean-luc'
+    def test_no_url_error(self):
+        # A ValueError is raised if the URL is empty.
+        expected_error = b'URL has no schema: '
         with self.assert_value_error(expected_error):
-            references.Reference.from_string(
-                'cs:jean-luc/precise/juju-gui')
+            references.Reference.from_fully_qualified_url('')
 
     def test_invalid_user_name_error(self):
         # A ValueError is raised if the user name is not valid.
@@ -389,12 +486,36 @@ class TestReferenceFromString(
             references.Reference.from_string(
                 'local:~jean-luc/precise/juju-gui')
 
+    def test_invalid_channel_error(self):
+        # A ValueError is raised if the channel is not valid.
+        expected_error = (
+            b'URL has invalid form: cs:~jean-luc/bad-wolf/wily/juju-gui')
+        with self.assert_value_error(expected_error):
+            references.Reference.from_string(
+                'cs:~jean-luc/bad-wolf/wily/juju-gui')
+
+    def test_local_channel_error(self):
+        # A ValueError is raised if a channel is specified on a local entity.
+        expected_error = (
+            b'local entity URL with channel: '
+            b'local:development/precise/juju-gui')
+        with self.assert_value_error(expected_error):
+            references.Reference.from_string(
+                'local:development/precise/juju-gui')
+
     def test_invalid_form_error(self):
         # A ValueError is raised if the URL is not valid.
         expected_error = b'URL has invalid form: cs:~user/series/name/what-?'
         with self.assert_value_error(expected_error):
             references.Reference.from_string(
                 'cs:~user/series/name/what-?')
+
+    def test_user_only_error(self):
+        # A ValueError is raised if the URL only includes the user.
+        expected_error = (
+            b'URL has invalid form: cs:~user')
+        with self.assert_value_error(expected_error):
+            references.Reference.from_string('cs:~user')
 
     def test_invalid_series_error(self):
         # A ValueError is raised if the series is not valid.
@@ -460,6 +581,59 @@ class TestReferenceFromString(
             # No schema, series and revision, promulgated.
             ('juju-gui',
              make_reference(user='', series='', revision=None)),
+
+            # Fully qualified (under development).
+            ('cs:~myuser/development/precise/juju-gui-42',
+             make_reference(channel=references.DEVELOPMENT_CHANNEL)),
+
+            # Fully qualified and promulgated (under development).
+            ('cs:development/trusty/juju-gui-42',
+             make_reference(user='', channel=references.DEVELOPMENT_CHANNEL,
+                            series='trusty')),
+
+            # No schema (under development).
+            ('~myuser/development/precise/juju-gui-42',
+             make_reference(channel=references.DEVELOPMENT_CHANNEL)),
+
+            # No schema and promulgated (under development).
+            ('development/trusty/juju-gui-42',
+             make_reference(user='', channel=references.DEVELOPMENT_CHANNEL,
+                            series='trusty')),
+
+            # No series (under development).
+            ('cs:~myuser/development/juju-gui-42',
+             make_reference(channel=references.DEVELOPMENT_CHANNEL,
+                            series='')),
+
+            # No series and promulgated (under development).
+            ('cs:development/juju-gui-42',
+             make_reference(user='', channel=references.DEVELOPMENT_CHANNEL,
+                            series='')),
+
+            # No revision (under development).
+            ('cs:~myuser/development/precise/juju-gui',
+             make_reference(channel=references.DEVELOPMENT_CHANNEL,
+                            revision=None)),
+
+            # No revision and not hyphen in name (under development).
+            ('cs:~myuser/development/precise/django',
+             make_reference(channel=references.DEVELOPMENT_CHANNEL,
+                            name='django', revision=None)),
+
+            # No revision and promulgated (under development).
+            ('cs:development/precise/juju-gui',
+             make_reference(user='', channel=references.DEVELOPMENT_CHANNEL,
+                            revision=None)),
+
+            # No schema, series and revision (under development).
+            ('~myuser/development/juju-gui',
+             make_reference(channel=references.DEVELOPMENT_CHANNEL, series='',
+                            revision=None)),
+
+            # No schema, series and revision, promulgated (under development).
+            ('development/juju-gui',
+             make_reference(user='', channel=references.DEVELOPMENT_CHANNEL,
+                            series='', revision=None)),
         )
         for url, expected_ref in tests:
             ref = references.Reference.from_string(url)
@@ -474,6 +648,13 @@ class TestReferenceFromJujucharmsUrl(
         expected_error = b'invalid bundle URL: bad wolf'
         with self.assert_value_error(expected_error):
             references.Reference.from_jujucharms_url('bad wolf')
+
+    def test_invalid_channel(self):
+        # A ValueError is raised if the channel is not valid.
+        url = 'u/myuser/bad-wolf/django/trusty/42'
+        expected_error = b'invalid bundle URL: ' + url.encode('utf-8')
+        with self.assert_value_error(expected_error):
+            references.Reference.from_jujucharms_url(url)
 
     def test_success(self):
         # A reference is correctly created from a jujucharms.com identifier or
@@ -490,6 +671,30 @@ class TestReferenceFromJujucharmsUrl(
              make_reference(series='bundle', name='mediawiki')),
             ('{}u/myuser/mediawiki/42/'.format(references.JUJUCHARMS_URL),
              make_reference(series='bundle', name='mediawiki')),
+
+            # Check under development.
+            ('u/myuser/development/mediawiki/42',
+             make_reference(channel=references.DEVELOPMENT_CHANNEL,
+                            series='bundle', name='mediawiki')),
+            ('/development/mediawiki/42',
+             make_reference(user='', channel=references.DEVELOPMENT_CHANNEL,
+                            series='bundle', name='mediawiki')),
+            ('development/django-scalable',
+             make_reference(user='', channel=references.DEVELOPMENT_CHANNEL,
+                            series='bundle', name='django-scalable',
+                            revision=None)),
+            ('u/myuser/development/mediawiki/wily',
+             make_reference(channel=references.DEVELOPMENT_CHANNEL,
+                            series='wily', name='mediawiki', revision=None)),
+            ('/development/mediawiki/trusty/0',
+             make_reference(user='', channel=references.DEVELOPMENT_CHANNEL,
+                            series='trusty', name='mediawiki', revision=0)),
+            ('{}u/myuser/development/hp/42'.format(references.JUJUCHARMS_URL),
+             make_reference(channel=references.DEVELOPMENT_CHANNEL,
+                            series='bundle', name='hp')),
+            ('{}development/mediawiki/42/'.format(references.JUJUCHARMS_URL),
+             make_reference(user='', channel=references.DEVELOPMENT_CHANNEL,
+                            series='bundle', name='mediawiki')),
 
             # Check without revision.
             ('u/myuser/mediawiki',
