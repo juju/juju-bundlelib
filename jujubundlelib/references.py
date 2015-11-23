@@ -17,10 +17,14 @@ USER_PATTERN = r'[a-z0-9][a-zA-Z0-9+.-]+'
 SERIES_PATTERN = r'[a-z]+(?:[a-z-]+[a-z])?'
 NAME_PATTERN = r'[a-z][a-z0-9]*(?:-[a-z0-9]*[a-z][a-z0-9]*)*'
 
+# Define the name of the development channel.
+DEVELOPMENT_CHANNEL = 'development'
+
 # Define the callables used to check if entity reference components are valid.
 valid_user = re.compile(r'^{}$'.format(USER_PATTERN)).match
 valid_name = re.compile(r'^{}$'.format(NAME_PATTERN)).match
 valid_series = re.compile(r'^{}$'.format(SERIES_PATTERN)).match
+valid_channel = lambda channel: channel == DEVELOPMENT_CHANNEL
 
 # Compile the regular expression used to parse new jujucharms entity URLs.
 _jujucharms_url_expression = re.compile(r"""
@@ -31,12 +35,14 @@ _jujucharms_url_expression = re.compile(r"""
         /?  # Optional leading slash.
     )?
     (?:u/({user_pattern})/)?  # Optional user name.
+    (?:({development})/)?  # Optional channel.
     ({name_pattern})  # Bundle name.
     (?:/({series_pattern}))?  # Optional series.
     (?:/(\d+))?  # Optional bundle revision number.
     /?  # Optional trailing slash.
     $  # End of the line.
 """.format(
+    development=DEVELOPMENT_CHANNEL,
     jujucharms=JUJUCHARMS_URL,
     name_pattern=NAME_PATTERN,
     series_pattern=SERIES_PATTERN,
@@ -48,10 +54,11 @@ _jujucharms_url_expression = re.compile(r"""
 class Reference(object):
     """Represent a charm or bundle URL reference."""
 
-    def __init__(self, schema, user, series, name, revision):
+    def __init__(self, schema, user, channel, series, name, revision):
         """Initialize the reference. Receives the URL fragments."""
         self.schema = schema
         self.user = user
+        self.channel = channel
         self.series = series
         self.name = name
         if revision is not None:
@@ -102,8 +109,10 @@ class Reference(object):
         if match is None:
             msg = 'invalid bundle URL: {}'.format(url)
             raise ValueError(msg.encode('utf-8'))
-        user, name, series, revision = match.groups()
-        return cls('cs', user, series or 'bundle', name, revision)
+        user, channel, name, series, revision = match.groups()
+        return cls(
+            'cs', user or '', channel or '', series or 'bundle', name,
+            revision)
 
     def __str__(self):
         """The string representation of a reference is its URL string."""
@@ -113,8 +122,16 @@ class Reference(object):
         return '<Reference: {}>'.format(self)
 
     def __eq__(self, other):
-        """Two refs are equal if they have the same string representation."""
-        return isinstance(other, self.__class__) and self.id() == other.id()
+        """Two refs are equal if they have the same parts."""
+        return (
+            isinstance(other, self.__class__) and
+            self.schema == other.schema and
+            self.user == other.user and
+            self.channel == other.channel and
+            self.series == other.series and
+            self.name == other.name and
+            self.revision == other.revision
+        )
 
     def path(self):
         """Return the reference as a string without the schema."""
@@ -122,7 +139,8 @@ class Reference(object):
         name_revision = self.name
         if self.revision is not None:
             name_revision += '-{}'.format(self.revision)
-        return '/'.join(filter(None, [user, self.series, name_revision]))
+        return '/'.join(
+            filter(None, [user, self.channel, self.series, name_revision]))
 
     def id(self):
         """Return the reference URL as a string."""
@@ -146,17 +164,19 @@ class Reference(object):
     def copy(self):
         """Copy this reference."""
         return self.__class__(
-            self.schema, self.user, self.series, self.name, self.revision)
+            self.schema, self.user, self.channel, self.series, self.name,
+            self.revision)
 
     def jujucharms_id(self):
         """Return the identifier of this reference in jujucharms.com."""
         user_part = 'u/{}/'.format(self.user) if self.user else ''
+        channel_part = '{}/'.format(self.channel) if self.channel else ''
         series_part = '' if self.is_bundle() else '/{}'.format(self.series)
         revision_part = ''
         if self.revision is not None:
             revision_part = '/{}'.format(self.revision)
-        return '{}{}{}{}'.format(
-            user_part, self.name, series_part, revision_part)
+        return '{}{}{}{}{}'.format(
+            user_part, channel_part, self.name, series_part, revision_part)
 
     def jujucharms_url(self):
         """Return the URL where this entity lives in jujucharms.com."""
@@ -177,12 +197,17 @@ class Reference(object):
         """
         return self.schema and self.series and (self.revision is not None)
 
+    def is_under_development(self):
+        """Report whether this reference points to a development entity."""
+        return self.channel == DEVELOPMENT_CHANNEL
+
 
 def _parse_url(url, fully_qualified=False):
     """Parse the given charm or bundle URL, provided as a string.
 
     Return a tuple containing the entity reference fragments: schema, user,
-    series, name and revision. Each fragment is a string except revision (int).
+    channel, series, name and revision.
+    Each fragment is a string except revision (int).
 
     Raise a ValueError with a descriptive message if the given URL is not
     valid. If fully_qualified is True, the URL must include the schema, series
@@ -200,46 +225,52 @@ def _parse_url(url, fully_qualified=False):
     if schema not in ('cs', 'local'):
         msg = 'URL has invalid schema: {}'.format(schema)
         raise ValueError(msg.encode('utf-8'))
-    # Retrieve the optional user, the series, name and revision.
+    # Retrieve and validate the optional user.
     parts = remaining.split('/')
-    parts_length = len(parts)
-    if parts_length == 3:
-        user, series, name_revision = parts
-        if not user.startswith('~'):
-            msg = 'URL has invalid user name form: {}'.format(user)
+    part = parts.pop(0)
+    user = ''
+    if part.startswith('~'):
+        user = part[1:]
+        if not valid_user(user):
+            msg = 'URL has invalid user name: {}'.format(user)
             raise ValueError(msg.encode('utf-8'))
-        user = user[1:]
         if schema == 'local':
             msg = 'local entity URL with user name: {}'.format(url)
             raise ValueError(msg.encode('utf-8'))
-    elif parts_length == 2:
-        user_or_series, name_revision = parts
-        if user_or_series.startswith('~'):
-            user, series = user_or_series[1:], ''
-        else:
-            user, series = '', user_or_series
-    elif (parts_length == 1) and (not fully_qualified):
-        user = series = ''
-        name_revision = parts[0]
-    else:
+        if not parts:
+            msg = 'URL has invalid form: {}'.format(url)
+            raise ValueError(msg.encode('utf-8'))
+        part = parts.pop(0)
+    # Retrieve and validate the optional channel.
+    channel = ''
+    if valid_channel(part) and parts:
+        channel = part
+        if schema == 'local':
+            msg = 'local entity URL with channel: {}'.format(url)
+            raise ValueError(msg.encode('utf-8'))
+        part = parts.pop(0)
+    # Retrieve and validate the series.
+    series = ''
+    if parts:
+        series = part
+        if not valid_series(series):
+            msg = 'URL has invalid series: {}'.format(series)
+            raise ValueError(msg.encode('utf-8'))
+        part = parts.pop(0)
+    elif fully_qualified:
         msg = 'URL has invalid form: {}'.format(url)
         raise ValueError(msg.encode('utf-8'))
-    # Validate the user.
-    if user and not valid_user(user):
-        msg = 'URL has invalid user name: {}'.format(user)
+    # Retrieve and validate name and revision.
+    if parts:
+        msg = 'URL has invalid form: {}'.format(url)
         raise ValueError(msg.encode('utf-8'))
-    # Validate the series.
-    if series and not valid_series(series):
-        msg = 'URL has invalid series: {}'.format(series)
-        raise ValueError(msg.encode('utf-8'))
-    # Validate name and revision.
     try:
-        name, revision = name_revision.rsplit('-', 1)
+        name, revision = part.rsplit('-', 1)
     except ValueError:
         if fully_qualified:
             msg = 'URL has no revision: {}'.format(url)
             raise ValueError(msg.encode('utf-8'))
-        name, revision = name_revision, None
+        name, revision = part, None
     if revision is not None:
         try:
             revision = int(revision)
@@ -251,5 +282,4 @@ def _parse_url(url, fully_qualified=False):
     if not valid_name(name):
         msg = 'URL has invalid name: {}'.format(name)
         raise ValueError(msg.encode('utf-8'))
-
-    return schema, user, series, name, revision
+    return schema, user, channel, series, name, revision
