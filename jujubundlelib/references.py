@@ -161,11 +161,23 @@ class Reference(object):
             (self.schema, self.user, self.name) ==
             (other.schema, other.user, other.name))
 
-    def copy(self):
-        """Copy this reference."""
-        return self.__class__(
+    def copy(self, **kwargs):
+        """Copy this reference.
+
+        If keyword arguments are passed, the copied reference will have the
+        corresponding attributes.
+        For instance:
+
+            ref = reference.copy()
+            ref = reference.copy(revision=42)
+            ref = reference.copy(channel='', user='')
+        """
+        reference = self.__class__(
             self.schema, self.user, self.channel, self.series, self.name,
             self.revision)
+        for key, value in kwargs.items():
+            setattr(reference, key, value)
+        return reference
 
     def jujucharms_id(self):
         """Return the identifier of this reference in jujucharms.com."""
