@@ -174,6 +174,18 @@ class TestReference(unittest.TestCase):
         self.assertIsNot(ref, copied_ref)
         self.assertEqual(ref, copied_ref)
 
+    def test_copy_with_attributes(self):
+        # The reference can be copied overriding specific attributes.
+        ref = make_reference()
+        copy1 = ref.copy(channel=references.DEVELOPMENT_CHANNEL)
+        copy2 = ref.copy(user='', series='wily', revision=0)
+        self.assertNotEqual(ref, copy1)
+        self.assertNotEqual(ref, copy2)
+        self.assertEqual('cs:~myuser/precise/juju-gui-42', str(ref))
+        self.assertEqual(
+            'cs:~myuser/development/precise/juju-gui-42', str(copy1))
+        self.assertEqual('cs:wily/juju-gui-0', str(copy2))
+
     def test_jujucharms_id(self):
         # It is possible to return the reference identifier in jujucharms.com.
         for ref, expected_value in self.jujucharms_tests:
