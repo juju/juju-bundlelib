@@ -142,6 +142,18 @@ _validation_tests = {
             },
         },
     ),
+    'test_valid_bundle_storage_constraints': (
+        [],
+        {
+            'services': {
+                'django': {
+                    'charm': 'cs:trusty/django-42',
+                    'num_units': 1,
+                    'storage': {'data': 'ebs,10G', 'cache': 'ebs-ssd'},
+                },
+            },
+        },
+    ),
     'test_valid_bundle_options': (
         [],
         {
@@ -429,6 +441,24 @@ _validation_tests = {
                 'memcached': {'charm': 'memcached', 'constraints': {}},
                 'haproxy': {'charm': 'haproxy', 'constraints': 'bad wolf'},
                 'rails': {'charm': 'rails', 'constraints': 'foo=bar'},
+            },
+        },
+    ),
+    'test_invalid_service_storage_constraints': (
+        ['service django has invalid storage constraints 47',
+         'service memcached has invalid storage constraints []',
+         'service haproxy has invalid storage constraints bad wolf',
+         'service rails has invalid storage constraints foo=bar'],
+        {
+            'services': {
+                'django': {
+                    'charm': 'cs:trusty/django-42',
+                    'num_units': 2,
+                    'storage': 47,
+                },
+                'memcached': {'charm': 'memcached', 'storage': []},
+                'haproxy': {'charm': 'haproxy', 'storage': 'bad wolf'},
+                'rails': {'charm': 'rails', 'storage': 'foo=bar'},
             },
         },
     ),

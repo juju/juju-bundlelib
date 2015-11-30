@@ -70,6 +70,7 @@ def handle_services(changeset):
                 service_name,
                 service.get('options', {}),
                 service.get('constraints', ''),
+                service.get('storage', {}),
             ],
             'requires': [charms[service['charm']]],
         })

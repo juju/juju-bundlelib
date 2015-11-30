@@ -87,7 +87,11 @@ class TestHandleServices(unittest.TestCase):
                     'options': {
                         'key1': 'value1',
                         'key2': 'value2',
-                    }
+                    },
+                    'storage': {
+                        'data': 'ebs,10G',
+                        'cache': 'ebs-ssd',
+                    },
                 },
                 'haproxy': {
                     'charm': 'cs:trusty/haproxy-5',
@@ -95,7 +99,7 @@ class TestHandleServices(unittest.TestCase):
                     'annotations': {
                         'gui-x': 100,
                         'gui-y': 100,
-                    }
+                    },
                 },
             }
         })
@@ -112,7 +116,7 @@ class TestHandleServices(unittest.TestCase):
                 {
                     'id': 'deploy-1',
                     'method': 'deploy',
-                    'args': ['$addCharm-0', 'django', {}, ''],
+                    'args': ['$addCharm-0', 'django', {}, '', {}],
                     'requires': ['addCharm-0'],
                 },
                 {
@@ -124,7 +128,7 @@ class TestHandleServices(unittest.TestCase):
                 {
                     'id': 'deploy-3',
                     'method': 'deploy',
-                    'args': ['$addCharm-2', 'haproxy', {}, ''],
+                    'args': ['$addCharm-2', 'haproxy', {}, '', {}],
                     'requires': ['addCharm-2'],
                 },
                 {
@@ -157,16 +161,20 @@ class TestHandleServices(unittest.TestCase):
                         'mysql-master',
                         {},
                         'cpu-cores=4 mem=42G',
+                        {},
                     ],
                     'requires': ['addCharm-6'],
                 },
                 {
                     'id': 'deploy-8',
                     'method': 'deploy',
-                    'args': ['$addCharm-6', 'mysql-slave', {
-                        'key1': 'value1',
-                        'key2': 'value2',
-                    }, ''],
+                    'args': [
+                        '$addCharm-6',
+                        'mysql-slave',
+                        {'key1': 'value1', 'key2': 'value2'},
+                        '',
+                        {'data': 'ebs,10G', 'cache': 'ebs-ssd'},
+                    ],
                     'requires': ['addCharm-6'],
                 },
             ],

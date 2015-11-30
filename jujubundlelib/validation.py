@@ -132,9 +132,11 @@ def _validate_services(services, machines, add_error):
         charm = _validate_charm(service.get('charm'), service_name, add_error)
         num_units = _validate_num_units(
             service.get('num_units'), service_name, add_error)
-        # Validate the service constraints, options and annotations.
+        # Validate service constraints and storage constraints.
         label = 'service {}'.format(service_name)
         _validate_constraints(service.get('constraints'), label, add_error)
+        _validate_storage(service.get('storage'), service_name, add_error)
+        # Validate service options and annotations.
         _validate_options(service.get('options'), service_name, add_error)
         _validate_annotations(service.get('annotations'), label, add_error)
         # Retrieve and validate the service units placement.
@@ -247,6 +249,19 @@ def _validate_constraints(constraints, label, add_error):
             return
         if key not in _CONSTRAINTS:
             add_error(msg)
+
+
+def _validate_storage(storage, service_name, add_error):
+    """Lazily validate the storage constraints, ensuring that they are a dict.
+
+    Use the given add_error callable to register validation error.
+    """
+    if storage is None:
+        return
+    if not isdict(storage):
+        msg = 'service {} has invalid storage constraints {}'.format(
+            service_name, storage)
+        add_error(msg)
 
 
 def _validate_options(options, service_name, add_error):
