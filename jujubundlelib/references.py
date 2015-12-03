@@ -111,8 +111,7 @@ class Reference(object):
             raise ValueError(msg.encode('utf-8'))
         user, channel, name, series, revision = match.groups()
         return cls(
-            'cs', user or '', channel or '', series or 'bundle', name,
-            revision)
+            'cs', user or '', channel or '', series or '', name, revision)
 
     def __str__(self):
         """The string representation of a reference is its URL string."""
