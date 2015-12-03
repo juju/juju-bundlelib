@@ -103,21 +103,26 @@ class TestReference(unittest.TestCase):
          'u/myuser/juju-gui/precise/42'),
         (make_reference(user=''),
          'juju-gui/precise/42'),
-        (make_reference(user='dalek', revision=None, series='bundle'),
+        (make_reference(user='dalek', revision=None, series=''),
          'u/dalek/juju-gui'),
         (make_reference(name='django', series='vivid', revision=0),
          'u/myuser/django/vivid/0'),
+        (make_reference(name='django', series='', revision=0),
+         'u/myuser/django/0'),
         (make_reference(user='', revision=None),
          'juju-gui/precise'),
-        (make_reference(user='', series='bundle', revision=None),
+        (make_reference(user='', series='', revision=None),
          'juju-gui'),
         (make_reference(channel=references.DEVELOPMENT_CHANNEL),
          'u/myuser/development/juju-gui/precise/42'),
         (make_reference(user='', channel=references.DEVELOPMENT_CHANNEL),
          'development/juju-gui/precise/42'),
         (make_reference(user='dalek', channel=references.DEVELOPMENT_CHANNEL,
-                        revision=None, series='bundle'),
+                        revision=None, series=''),
          'u/dalek/development/juju-gui'),
+        (make_reference(user='dalek', channel=references.DEVELOPMENT_CHANNEL,
+                        revision=None, series='bundle'),
+         'u/dalek/development/juju-gui/bundle'),
         (make_reference(channel=references.DEVELOPMENT_CHANNEL, name='django',
                         series='vivid', revision=0),
          'u/myuser/development/django/vivid/0'),
@@ -125,8 +130,14 @@ class TestReference(unittest.TestCase):
                         revision=None),
          'development/juju-gui/precise'),
         (make_reference(user='', channel=references.DEVELOPMENT_CHANNEL,
-                        series='bundle', revision=None),
+                        series='', revision=None),
          'development/juju-gui'),
+        (make_reference(user='', channel=references.DEVELOPMENT_CHANNEL,
+                        series='bundle', revision=None),
+         'development/juju-gui/bundle'),
+        (make_reference(user='', channel=references.DEVELOPMENT_CHANNEL,
+                        series='bundle', revision=0),
+         'development/juju-gui/bundle/0'),
     )
 
     def test_attributes(self):
@@ -657,14 +668,14 @@ class TestReferenceFromJujucharmsUrl(
 
     def test_invalid_form(self):
         # A ValueError is raised if the URL is not valid.
-        expected_error = b'invalid bundle URL: bad wolf'
+        expected_error = b'invalid charm or bundle URL: bad wolf'
         with self.assert_value_error(expected_error):
             references.Reference.from_jujucharms_url('bad wolf')
 
     def test_invalid_channel(self):
         # A ValueError is raised if the channel is not valid.
         url = 'u/myuser/bad-wolf/django/trusty/42'
-        expected_error = b'invalid bundle URL: ' + url.encode('utf-8')
+        expected_error = b'invalid charm or bundle URL: ' + url.encode('utf-8')
         with self.assert_value_error(expected_error):
             references.Reference.from_jujucharms_url(url)
 
