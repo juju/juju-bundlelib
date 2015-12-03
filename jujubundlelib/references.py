@@ -182,7 +182,7 @@ class Reference(object):
         """Return the identifier of this reference in jujucharms.com."""
         user_part = 'u/{}/'.format(self.user) if self.user else ''
         channel_part = '{}/'.format(self.channel) if self.channel else ''
-        series_part = '' if self.is_bundle() else '/{}'.format(self.series)
+        series_part = '/{}'.format(self.series) if self.series else ''
         revision_part = ''
         if self.revision is not None:
             revision_part = '/{}'.format(self.revision)
