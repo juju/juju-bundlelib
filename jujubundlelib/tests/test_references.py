@@ -668,14 +668,14 @@ class TestReferenceFromJujucharmsUrl(
 
     def test_invalid_form(self):
         # A ValueError is raised if the URL is not valid.
-        expected_error = b'invalid bundle URL: bad wolf'
+        expected_error = b'invalid charm or bundle URL: bad wolf'
         with self.assert_value_error(expected_error):
             references.Reference.from_jujucharms_url('bad wolf')
 
     def test_invalid_channel(self):
         # A ValueError is raised if the channel is not valid.
         url = 'u/myuser/bad-wolf/django/trusty/42'
-        expected_error = b'invalid bundle URL: ' + url.encode('utf-8')
+        expected_error = b'invalid charm or bundle URL: ' + url.encode('utf-8')
         with self.assert_value_error(expected_error):
             references.Reference.from_jujucharms_url(url)
 

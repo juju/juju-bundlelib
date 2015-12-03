@@ -107,7 +107,7 @@ class Reference(object):
         """
         match = _jujucharms_url_expression.match(url)
         if match is None:
-            msg = 'invalid bundle URL: {}'.format(url)
+            msg = 'invalid charm or bundle URL: {}'.format(url)
             raise ValueError(msg.encode('utf-8'))
         user, channel, name, series, revision = match.groups()
         return cls(
