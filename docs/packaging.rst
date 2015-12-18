@@ -61,8 +61,8 @@ to be pushed in the Juju Stable PPA (``ppa:juju/stable``).
 
 * Upload the package to the PPA, and wait for it to build::
 
-    for release in "precise trusty vivid wily"; do
-        backportpackage -u ppa:juju/stable -r -d $release -S ~ppa1 -y jujubundlelib_*.dsc
+    for release in `echo precise trusty vivid wily`; do
+        backportpackage -u ppa:juju/stable -r -d "$release" -S "~ppa1" -y jujubundlelib_*.dsc
     done
 
 * The building process can be followed at
