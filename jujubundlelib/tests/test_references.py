@@ -139,6 +139,12 @@ class TestReference(unittest.TestCase):
         for ref, expected_value in self.jujucharms_tests:
             self.assertEqual(expected_value, ref.jujucharms_id())
 
+    def test_jujucharms_id_with_channel(self):
+        ref = make_reference()
+        expected_value = 'u/myuser/juju-gui/precise/42?channel=development'
+        self.assertEqual(expected_value,
+                         ref.jujucharms_id(channel='development'))
+
     def test_jujucharms_url(self):
         # The corresponding charm or bundle page in jujucharms.com is correctly
         # returned.

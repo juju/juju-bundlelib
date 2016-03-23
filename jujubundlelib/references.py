@@ -168,19 +168,22 @@ class Reference(object):
             setattr(reference, key, value)
         return reference
 
-    def jujucharms_id(self):
+    def jujucharms_id(self, channel=None):
         """Return the identifier of this reference in jujucharms.com."""
         user_part = 'u/{}/'.format(self.user) if self.user else ''
         series_part = '/{}'.format(self.series) if self.series else ''
         revision_part = ''
         if self.revision is not None:
             revision_part = '/{}'.format(self.revision)
-        return '{}{}{}{}'.format(
+        id = '{}{}{}{}'.format(
             user_part, self.name, series_part, revision_part)
+        if channel is not None:
+            id = '{}?channel={}'.format(id, channel)
+        return id
 
-    def jujucharms_url(self):
+    def jujucharms_url(self, channel=None):
         """Return the URL where this entity lives in jujucharms.com."""
-        return JUJUCHARMS_URL + self.jujucharms_id()
+        return JUJUCHARMS_URL + self.jujucharms_id(channel=channel)
 
     def is_bundle(self):
         """Report whether this reference refers to a bundle entity."""
