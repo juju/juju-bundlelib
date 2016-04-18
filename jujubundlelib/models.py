@@ -8,7 +8,7 @@ from collections import namedtuple
 
 VALID_CONTAINERS = (
     'lxc',
-    'lxd', # lxd will be translated to lxc when retrieving the changeset.
+    'lxd',  # lxd will be translated to lxc when retrieving the changeset.
     'kvm',
 )
 

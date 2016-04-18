@@ -647,7 +647,6 @@ class TestHandleUnits(unittest.TestCase):
             ],
             cs.recv())
 
-
     def test_unit_colocation_to_lxc_from_lxd_in_unit(self):
         cs = changeset.ChangeSet({
             'services': {
