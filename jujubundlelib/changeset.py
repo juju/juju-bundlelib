@@ -5,7 +5,6 @@ from __future__ import unicode_literals
 
 import copy
 import itertools
-import re
 
 import models
 import utils
@@ -280,7 +279,7 @@ def _handle_container_placement(changeset, placement, machine_record_id):
 
 
 def _lxd_to_lxc(container_type):
-    return re.sub(r'^lxd$', 'lxc', container_type)
+    return 'lxc' if container_type == 'lxd' else container_type
 
 
 def parse(bundle, handler=handle_services):
