@@ -566,6 +566,39 @@ class TestHandleUnits(unittest.TestCase):
             ],
             cs.recv())
 
+    def test_unit_in_new_machine_to_lxc_from_lxd_container(self):
+        cs = changeset.ChangeSet({
+            'services': {
+                'django-new-lxd': {
+                    'charm': 'cs:trusty/django-42',
+                    'num_units': 1,
+                    'to': 'lxd:new',
+                },
+            },
+            'machines': {},
+        })
+        cs.services_added = {
+            'django-new-lxd': 'deploy-4',
+        }
+        handler = changeset.handle_units(cs)
+        self.assertIsNone(handler)
+        self.assertEqual(
+            [
+                {
+                    'id': 'addMachines-1',
+                    'method': 'addMachines',
+                    'args': [{'containerType': 'lxc'}],
+                    'requires': [],
+                },
+                {
+                    'id': 'addUnit-0',
+                    'method': 'addUnit',
+                    'args': ['$deploy-4', '$addMachines-1'],
+                    'requires': ['deploy-4', 'addMachines-1'],
+                },
+            ],
+            cs.recv())
+
     def test_unit_colocation_to_container_in_unit(self):
         cs = changeset.ChangeSet({
             'services': {
@@ -584,6 +617,55 @@ class TestHandleUnits(unittest.TestCase):
         cs.services_added = {
             'django-new': 'deploy-1',
             'django-unit-lxc': 'deploy-5',
+        }
+        handler = changeset.handle_units(cs)
+        self.assertIsNone(handler)
+        self.maxDiff = None
+        self.assertEqual(
+            [
+                {
+                    'id': 'addUnit-0',
+                    'method': 'addUnit',
+                    'args': ['$deploy-1', None],
+                    'requires': ['deploy-1'],
+                },
+                {
+                    'id': 'addMachines-2',
+                    'method': 'addMachines',
+                    'args': [{
+                        'containerType': 'lxc',
+                        'parentId': '$addUnit-0',
+                    }],
+                    'requires': ['addUnit-0'],
+                },
+                {
+                    'id': 'addUnit-1',
+                    'method': 'addUnit',
+                    'args': ['$deploy-5', '$addMachines-2'],
+                    'requires': ['deploy-5', 'addMachines-2'],
+                },
+            ],
+            cs.recv())
+
+
+    def test_unit_colocation_to_lxc_from_lxd_in_unit(self):
+        cs = changeset.ChangeSet({
+            'services': {
+                'django-new': {
+                    'charm': 'cs:trusty/django-42',
+                    'num_units': 1,
+                },
+                'django-unit-lxd': {
+                    'charm': 'cs:trusty/django-42',
+                    'num_units': 1,
+                    'to': 'lxd:django-new/0',
+                },
+            },
+            'machines': {},
+        })
+        cs.services_added = {
+            'django-new': 'deploy-1',
+            'django-unit-lxd': 'deploy-5',
         }
         handler = changeset.handle_units(cs)
         self.assertIsNone(handler)
