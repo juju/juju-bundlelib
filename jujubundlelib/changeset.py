@@ -218,7 +218,9 @@ def _handle_unit_placement(
             parent_record_id = 'addMachines-{}'.format(changeset.next_action())
             options = {}
             if placement.container_type:
-                options = {'containerType': placement.container_type}
+                options = {
+                    'containerType': _lxd_to_lxc(placement.container_type)
+                }
             changeset.send({
                 'id': parent_record_id,
                 'method': 'addMachines',
@@ -264,7 +266,7 @@ def _next_unit_in_service(service, placed_in_services):
 def _handle_container_placement(changeset, placement, machine_record_id):
     container_record_id = 'addMachines-{}'.format(changeset.next_action())
     options = {
-        'containerType': placement.container_type,
+        'containerType': _lxd_to_lxc(placement.container_type),
         'parentId': '${}'.format(machine_record_id),
     }
     changeset.send({
@@ -274,6 +276,10 @@ def _handle_container_placement(changeset, placement, machine_record_id):
         'requires': [machine_record_id],
     })
     return container_record_id
+
+
+def _lxd_to_lxc(container_type):
+    return 'lxc' if container_type == 'lxd' else container_type
 
 
 def parse(bundle, handler=handle_services):
