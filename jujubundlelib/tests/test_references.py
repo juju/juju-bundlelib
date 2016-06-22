@@ -353,6 +353,8 @@ class TestReferenceFromFullyQualifiedUrl(
         tests = (
             ('cs:~myuser/precise/juju-gui-42',
              make_reference()),
+            ('cs:~myuser/win2012hvr2/juju-gui-42',
+             make_reference(series='win2012hvr2')),
             ('cs:trusty/juju-gui-42',
              make_reference(user='', series='trusty')),
             ('local:precise/juju-gui-42',

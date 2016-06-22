@@ -12,9 +12,9 @@ from jujubundlelib import pyutils
 JUJUCHARMS_URL = 'https://jujucharms.com/'
 
 # The following regular expressions are the same used in juju-core: see
-# http://bazaar.launchpad.net/~go-bot/juju-core/trunk/view/head:/charm/url.go.
+# https://github.com/juju/charm/blob/v6-unstable/url.go
 USER_PATTERN = r'[a-z0-9][a-zA-Z0-9+.-]+'
-SERIES_PATTERN = r'[a-z]+(?:[a-z-]+[a-z])?'
+SERIES_PATTERN = r'[a-z]+([a-z0-9]+)?'
 NAME_PATTERN = r'[a-z][a-z0-9]*(?:-[a-z0-9]*[a-z][a-z0-9]*)*'
 
 # Define the callables used to check if entity reference components are valid.
@@ -102,7 +102,7 @@ class Reference(object):
         if match is None:
             msg = 'invalid charm or bundle URL: {}'.format(url)
             raise ValueError(msg.encode('utf-8'))
-        user, name, series, revision = match.groups()
+        user, name, series, _, revision = match.groups()
         return cls(
             'cs', user or '', series or '', name, revision)
 
