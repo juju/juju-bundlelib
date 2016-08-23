@@ -16,6 +16,7 @@ from typeutils import (
 # Define accepted constraint types.
 _CONSTRAINTS = (
     'arch',
+    'availability-zone',
     'container',
     'cpu',
     'cpu-cores',
