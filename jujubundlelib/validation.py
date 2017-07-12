@@ -18,6 +18,7 @@ _CONSTRAINTS = (
     'arch',
     'availability-zone',
     'container',
+    'cores',
     'cpu',
     'cpu-cores',
     'cpu-power',

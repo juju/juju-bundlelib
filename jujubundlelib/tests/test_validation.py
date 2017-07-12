@@ -130,7 +130,7 @@ _validation_tests = {
             },
         },
     ),
-    'test_valid_bundle_constraints': (
+    'test_valid_juju1_bundle_constraints': (
         [],
         {
             'services': {
@@ -138,6 +138,18 @@ _validation_tests = {
                     'charm': 'cs:trusty/django-42',
                     'num_units': 1,
                     'constraints': 'cpu-cores=8 arch=amd64',
+                },
+            },
+        },
+    ),
+    'test_valid_juju2_bundle_constraints': (
+        [],
+        {
+            'services': {
+                'django': {
+                    'charm': 'cs:trusty/django-42',
+                    'num_units': 1,
+                    'constraints': 'cores=8 arch=amd64',
                 },
             },
         },
