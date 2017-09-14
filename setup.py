@@ -16,7 +16,7 @@ with open('README.rst') as readme_file:
     readme = readme_file.read()
 
 requirements = [
-    'PyYAML==3.11',
+    'PyYAML>=3.11',
 ]
 
 test_requirements = [
