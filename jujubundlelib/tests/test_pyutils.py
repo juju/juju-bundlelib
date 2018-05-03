@@ -17,7 +17,7 @@ class TestStringClass(unittest.TestCase):
         byte_string = str(instance)
         self.assertIsInstance(byte_string, bytes)
         self.assertEqual(b'example', byte_string)
-        unicode_string = unicode(instance)
+        unicode_string = unicode(instance)  # noqa: F821
         self.assertNotIsInstance(unicode_string, bytes)
         self.assertEqual('example', unicode_string)
 
