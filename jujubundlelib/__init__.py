@@ -4,7 +4,7 @@
 from __future__ import unicode_literals
 
 
-VERSION = (0, 5, 5)
+VERSION = (0, 5, 6)
 
 
 def get_version():
