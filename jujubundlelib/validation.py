@@ -1,8 +1,10 @@
 # Copyright 2015 Canonical Ltd.
 # Licensed under the AGPLv3, see LICENCE file for details.
 
-from __future__ import unicode_literals
-from __future__ import absolute_import
+from __future__ import (
+    absolute_import,
+    unicode_literals,
+)
 
 import jujubundlelib.models as models
 import jujubundlelib.pyutils as pyutils
