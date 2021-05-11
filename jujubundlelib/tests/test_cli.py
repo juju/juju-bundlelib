@@ -21,11 +21,11 @@ class TestGetChangeset(helpers.BundleFileTestsMixin, unittest.TestCase):
     def test_invalid_bundle(self, mock_print):
         path = self.make_bundle_file({
             'series': 42,
-            'services': {'django': {}},
+            'applications': {'django': {}},
         })
         expected_error = (
             'bundle series must be a string, found 42\n'
-            'no charm specified for service django')
+            'no charm specified for application django')
         error = cli.get_changeset([path])
         print(error)
         self.assertEqual(expected_error, error)

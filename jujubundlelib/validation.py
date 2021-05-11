@@ -78,11 +78,11 @@ def _validate_sections(bundle, add_error):
         add_error('bundle does not appear to be a bundle')
         return None, None, None, None
     # Validate the services section.
-    services = bundle.get('services', {})
+    services = bundle.get('applications', bundle.get('services', {}))
     if not services:
-        add_error('bundle does not define any services')
+        add_error('bundle does not define any applications')
     elif not isdict(services):
-        add_error('services spec does not appear to be well-formed')
+        add_error('applications spec does not appear to be well-formed')
     # Validate the machines section.
     machines = bundle.get('machines')
     if machines is not None:
@@ -129,16 +129,17 @@ def _validate_services(services, machines, add_error):
 
     for service_name, service in services.items():
         if not isstring(service_name):
-            add_error('service name {} must be a string'.format(service_name))
+            add_error('application name {} must be a string'.format(
+                service_name))
         if service.get('expose') not in (True, False, None):
             add_error(
-                'invalid expose value for service {}'.format(service_name))
+                'invalid expose value for application {}'.format(service_name))
         # Validate and retrieve the service charm URL and number of units.
         charm = _validate_charm(service.get('charm'), service_name, add_error)
         num_units = _validate_num_units(
             service.get('num_units'), service_name, add_error)
         # Validate service constraints and storage constraints.
-        label = 'service {}'.format(service_name)
+        label = 'application {}'.format(service_name)
         _validate_constraints(service.get('constraints'), label, add_error)
         _validate_storage(service.get('storage'), service_name, add_error)
         # Validate service options and annotations.
@@ -150,7 +151,8 @@ def _validate_services(services, machines, add_error):
             placements = [placements]
         if (num_units is not None) and (len(placements) > num_units):
             add_error(
-                'too many units placed for service {}'.format(service_name))
+                'too many units placed for application {}'.format(
+                    service_name))
         for placement in placements:
             machine_id = _validate_placement(
                 placement, services, machines, charm, add_error)
@@ -175,32 +177,33 @@ def _validate_charm(url, service_name, add_error):
     Return None otherwise.
     """
     if url is None:
-        add_error('no charm specified for service {}'.format(service_name))
+        add_error('no charm specified for application {}'.format(service_name))
         return None
     if not isstring(url):
         add_error(
-            'invalid charm specified for service {}: {}'
+            'invalid charm specified for application {}: {}'
             ''.format(service_name, url))
         return None
     if not url.strip():
-        add_error('empty charm specified for service {}'.format(service_name))
+        add_error('empty charm specified for application {}'.format(
+            service_name))
         return None
     try:
         charm = references.Reference.from_string(url)
     except ValueError as e:
         msg = pyutils.exception_string(e)
         add_error(
-            'invalid charm specified for service {}: {}'
+            'invalid charm specified for application {}: {}'
             ''.format(service_name, msg))
         return None
     if charm.is_local():
         add_error(
-            'local charms not allowed for service {}: {}'
+            'local charms not allowed for application {}: {}'
             ''.format(service_name, charm))
         return None
     if charm.is_bundle():
         add_error(
-            'bundle cannot be used as charm for service {}: {}'
+            'bundle cannot be used as charm for application {}: {}'
             ''.format(service_name, charm))
         return None
     return charm
@@ -222,11 +225,12 @@ def _validate_num_units(num_units, service_name, add_error):
         num_units = int(num_units)
     except (TypeError, ValueError):
         add_error(
-            'num_units for service {} must be a digit'.format(service_name))
+            'num_units for application {} must be a digit'.format(
+                service_name))
         return
     if num_units < 0:
         add_error(
-            'num_units {} for service {} must be a positive digit'
+            'num_units {} for application {} must be a positive digit'
             ''.format(num_units, service_name))
         return
     return num_units
@@ -264,7 +268,7 @@ def _validate_storage(storage, service_name, add_error):
     if storage is None:
         return
     if not isdict(storage):
-        msg = 'service {} has invalid storage constraints {}'.format(
+        msg = 'application {} has invalid storage constraints {}'.format(
             service_name, storage)
         add_error(msg)
 
@@ -277,7 +281,7 @@ def _validate_options(options, service_name, add_error):
     if options is None:
         return
     if not isdict(options):
-        add_error('service {} has malformed options'.format(service_name))
+        add_error('application {} has malformed options'.format(service_name))
 
 
 def _validate_annotations(annotations, label, add_error):
@@ -333,7 +337,7 @@ def _validate_placement(placement, services, machines, charm, add_error):
         service = services.get(unit_placement.service)
         if service is None:
             add_error(
-                'placement {} refers to non-existent service {}'
+                'placement {} refers to non-existent application {}'
                 ''.format(placement, unit_placement.service))
             return
         if unit_placement.unit is not None:
@@ -346,7 +350,7 @@ def _validate_placement(placement, services, machines, charm, add_error):
                 if int(unit_placement.unit) + 1 > num_units:
                     add_error(
                         'placement {} specifies a unit greater than the units '
-                        'in service {}'
+                        'in application {}'
                         ''.format(placement, unit_placement.service))
     elif (
         unit_placement.machine and
@@ -433,5 +437,5 @@ def _validate_relations(relations, services, add_error):
                 service = endpoint
             if service not in services:
                 add_error(
-                    'relation {} endpoint {} refers to a non-existent service '
-                    '{}'.format(relation_str, endpoint, service))
+                    'relation {} endpoint {} refers to a non-existent '
+                    'application {}'.format(relation_str, endpoint, service))

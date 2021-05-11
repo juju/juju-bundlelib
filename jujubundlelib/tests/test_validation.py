@@ -16,7 +16,7 @@ _validation_tests = {
     'test_valid_bundle': (
         [],
         {
-            'services': {
+            'applications': {
                 'django': {'charm': 'cs:trusty/django-42', 'num_units': 1},
             },
         },
@@ -25,7 +25,7 @@ _validation_tests = {
         [],
         {
             'series': 'precise',
-            'services': {
+            'applications': {
                 'django': {'charm': 'cs:trusty/django-42', 'num_units': 1},
             },
         },
@@ -34,7 +34,7 @@ _validation_tests = {
         [],
         {
             'series': 'wily',
-            'services': {
+            'applications': {
                 'django': {'charm': 'cs:trusty/django-42', 'expose': True},
             },
         },
@@ -43,7 +43,7 @@ _validation_tests = {
         [],
         {
             'series': 'wily',
-            'services': {
+            'applications': {
                 'django': {'charm': 'cs:trusty/django-42', 'expose': False},
             },
         },
@@ -51,7 +51,7 @@ _validation_tests = {
     'test_valid_bundle_machines': (
         [],
         {
-            'services': {
+            'applications': {
                 'django': {
                     'charm': 'cs:trusty/django-42',
                     'num_units': 1,
@@ -64,7 +64,7 @@ _validation_tests = {
     'test_valid_bundle_machines_none': (
         [],
         {
-            'services': {
+            'applications': {
                 'django': {
                     'charm': 'cs:trusty/django-42',
                     'num_units': 1,
@@ -77,7 +77,7 @@ _validation_tests = {
     'test_valid_bundle_relations': (
         [],
         {
-            'services': {
+            'applications': {
                 'django': {'charm': 'cs:trusty/django-42', 'num_units': 1},
                 'haproxy': {'charm': 'cs:trusty/haproxy-47', 'num_units': 0},
             },
@@ -88,7 +88,7 @@ _validation_tests = {
         [],
         {
             'series': 'precise',
-            'services': {
+            'applications': {
                 'django': {
                     'charm': 'cs:trusty/django-42',
                     'num_units': 1,
@@ -100,10 +100,10 @@ _validation_tests = {
             'relations': [('django:http', 'haproxy:http')],
         },
     ),
-    'test_valid_bundle_partial_service_url': (
+    'test_valid_bundle_partial_application_url': (
         [],
         {
-            'services': {
+            'applications': {
                 'django': {'charm': 'django', 'num_units': 1},
                 'haproxy': {'charm': 'trusty/haproxy', 'num_units': 0},
             },
@@ -112,7 +112,7 @@ _validation_tests = {
     'test_valid_bundle_string_placement': (
         [],
         {
-            'services': {
+            'applications': {
                 'django': {
                     'charm': 'cs:trusty/django-42',
                     'num_units': 1,
@@ -125,7 +125,7 @@ _validation_tests = {
     'test_valid_bundle_no_num_units': (
         [],
         {
-            'services': {
+            'applications': {
                 'django': {'charm': 'cs:trusty/django-42'},
             },
         },
@@ -133,7 +133,7 @@ _validation_tests = {
     'test_valid_juju1_bundle_constraints': (
         [],
         {
-            'services': {
+            'applications': {
                 'django': {
                     'charm': 'cs:trusty/django-42',
                     'num_units': 1,
@@ -145,7 +145,7 @@ _validation_tests = {
     'test_valid_juju2_bundle_constraints': (
         [],
         {
-            'services': {
+            'applications': {
                 'django': {
                     'charm': 'cs:trusty/django-42',
                     'num_units': 1,
@@ -157,7 +157,7 @@ _validation_tests = {
     'test_valid_bundle_storage_constraints': (
         [],
         {
-            'services': {
+            'applications': {
                 'django': {
                     'charm': 'cs:trusty/django-42',
                     'num_units': 1,
@@ -169,7 +169,7 @@ _validation_tests = {
     'test_valid_bundle_options': (
         [],
         {
-            'services': {
+            'applications': {
                 'django': {
                     'charm': 'cs:trusty/django-42',
                     'num_units': 1,
@@ -181,7 +181,7 @@ _validation_tests = {
     'test_valid_unit_placement': (
         [],
         {
-            'services': {
+            'applications': {
                 'django': {
                     'charm': 'trusty/django',
                     'num_units': 3,
@@ -211,10 +211,10 @@ _validation_tests = {
             },
         },
     ),
-    'test_valid_service_placement_v4_bundle': (
+    'test_valid_application_placement_v4_bundle': (
         [],
         {
-            'services': {
+            'applications': {
                 'django': {
                     'charm': 'trusty/django',
                     'num_units': 1,
@@ -229,7 +229,7 @@ _validation_tests = {
     'test_valid_relations': (
         [],
         {
-            'services': {
+            'applications': {
                 'django': {
                     'charm': 'trusty/django',
                     'num_units': 3,
@@ -278,21 +278,21 @@ _validation_tests = {
 
     # Invalid bundle sections.
     'test_empty_bundle': (
-        ['bundle does not define any services'],
+        ['bundle does not define any applications'],
         {},
     ),
-    'test_no_services_section': (
-        ['bundle does not define any services'],
-        {'services': {}},
+    'test_no_applications_section': (
+        ['bundle does not define any applications'],
+        {'applications': {}},
     ),
-    'test_invalid_services_section': (
-        ['services spec does not appear to be well-formed'],
-        {'services': 42},
+    'test_invalid_applications_section': (
+        ['applications spec does not appear to be well-formed'],
+        {'applications': 42},
     ),
     'test_invalid_machines_section': (
         ['machines spec does not appear to be well-formed'],
         {
-            'services': {
+            'applications': {
                 'django': {'charm': 'cs:trusty/django-42', 'num_units': 1},
             },
             'machines': 42,
@@ -301,7 +301,7 @@ _validation_tests = {
     'test_invalid_machines_section_non_digit_string': (
         ['machines spec identifiers must be digits'],
         {
-            'services': {
+            'applications': {
                 'django': {'charm': 'cs:trusty/django-42', 'num_units': 1},
             },
             'machines': {'foo': {}},
@@ -310,7 +310,7 @@ _validation_tests = {
     'test_invalid_machines_section_non_digit_tuple': (
         ['machines spec identifiers must be digits'],
         {
-            'services': {
+            'applications': {
                 'django': {'charm': 'cs:trusty/django-42', 'num_units': 1},
             },
             'machines': {'1': {}, ('foo'): {}},
@@ -319,7 +319,7 @@ _validation_tests = {
     'test_invalid_relations_section_int': (
         ['relations spec does not appear to be well-formed'],
         {
-            'services': {
+            'applications': {
                 'django': {'charm': 'cs:trusty/django-42', 'num_units': 1},
             },
             'relations': 42,
@@ -328,7 +328,7 @@ _validation_tests = {
     'test_invalid_relations_section_string': (
         ['relations spec does not appear to be well-formed'],
         {
-            'services': {
+            'applications': {
                 'django': {'charm': 'cs:trusty/django-42', 'num_units': 1},
             },
             'relations': 'invalid',
@@ -340,7 +340,7 @@ _validation_tests = {
         ['bundle series must be a string, found []'],
         {
             'series': [],
-            'services': {
+            'applications': {
                 'django': {'charm': 'cs:trusty/django-42', 'num_units': 1},
             },
         },
@@ -349,7 +349,7 @@ _validation_tests = {
         ['bundle has invalid series not@valid'],
         {
             'series': 'not@valid',
-            'services': {
+            'applications': {
                 'django': {'charm': 'cs:trusty/django-42', 'num_units': 1},
             },
         },
@@ -358,26 +358,26 @@ _validation_tests = {
         ['bundle series must specify a charm series'],
         {
             'series': 'bundle',
-            'services': {
+            'applications': {
                 'django': {'charm': 'cs:trusty/django-42', 'num_units': 1},
             },
         },
     ),
 
-    # Invalid services.
-    'test_invalid_service_name': (
-        ['service name 42 must be a string'],
+    # Invalid applications.
+    'test_invalid_application_name': (
+        ['application name 42 must be a string'],
         {
-            'services': {
+            'applications': {
                 'django': {'charm': 'cs:trusty/django-42', 'num_units': 1},
                 42: {'charm': 'cs:trusty/bad-charm', 'num_units': 1},
             },
         },
     ),
-    'test_invalid_service_too_many_units': (
-        ['too many units placed for service django'],
+    'test_invalid_application_too_many_units': (
+        ['too many units placed for application django'],
         {
-            'services': {
+            'applications': {
                 'django': {
                     'charm': 'cs:trusty/django-42',
                     'num_units': 2,
@@ -387,11 +387,11 @@ _validation_tests = {
             'machines': {'1': {}},
         },
     ),
-    'test_invalid_service_machine_not_referred_to': (
+    'test_invalid_application_machine_not_referred_to': (
         ['machine 1 not referred to by a placement directive',
          'machine 2 not referred to by a placement directive'],
         {
-            'services': {
+            'applications': {
                 'django': {
                     'charm': 'cs:trusty/django-42',
                     'num_units': 2,
@@ -401,14 +401,14 @@ _validation_tests = {
             'machines': {'1': {}, '2': {}},
         },
     ),
-    'test_invalid_service_charm_url': (
-        ['no charm specified for service django',
-         'empty charm specified for service haproxy',
-         'invalid charm specified for service mysql: 42',
-         'invalid charm specified for service rails: '
+    'test_invalid_application_charm_url': (
+        ['no charm specified for application django',
+         'empty charm specified for application haproxy',
+         'invalid charm specified for application mysql: 42',
+         'invalid charm specified for application rails: '
          'URL has invalid schema: bad'],
         {
-            'services': {
+            'applications': {
                 'django': {'num_units': 1},
                 'haproxy': {'charm': '', 'num_units': 1},
                 'mysql': {'charm': 42, 'num_units': 1},
@@ -416,35 +416,36 @@ _validation_tests = {
             },
         },
     ),
-    'test_invalid_service_charm_reference': (
-        ['local charms not allowed for service mysql: local:mysql',
-         'bundle cannot be used as charm for service rails: cs:bundle/rails'],
+    'test_invalid_application_charm_reference': (
+        ['local charms not allowed for application mysql: local:mysql',
+         'bundle cannot be used as charm for application rails: '
+         'cs:bundle/rails'],
         {
-            'services': {
+            'applications': {
                 'mysql': {'charm': 'local:mysql', 'num_units': 1},
                 'rails': {'charm': 'bundle/rails', 'num_units': 1},
             },
         },
     ),
-    'test_invalid_service_num_units': (
-        ['num_units for service django must be a digit',
-         'num_units for service haproxy must be a digit',
-         'num_units -47 for service mysql must be a positive digit'],
+    'test_invalid_application_num_units': (
+        ['num_units for application django must be a digit',
+         'num_units for application haproxy must be a digit',
+         'num_units -47 for application mysql must be a positive digit'],
         {
-            'services': {
+            'applications': {
                 'django': {'charm': 'django', 'num_units': 'bad-wolf'},
                 'haproxy': {'charm': 'haproxy', 'num_units': {}},
                 'mysql': {'charm': 'mysql', 'num_units': -47},
             },
         },
     ),
-    'test_invalid_service_constraints': (
-        ['service django has invalid constraints 47',
-         'service memcached has invalid constraints {}',
-         'service haproxy has invalid constraints bad wolf',
-         'service rails has invalid constraints foo=bar'],
+    'test_invalid_application_constraints': (
+        ['application django has invalid constraints 47',
+         'application memcached has invalid constraints {}',
+         'application haproxy has invalid constraints bad wolf',
+         'application rails has invalid constraints foo=bar'],
         {
-            'services': {
+            'applications': {
                 'django': {
                     'charm': 'cs:trusty/django-42',
                     'num_units': 2,
@@ -456,13 +457,13 @@ _validation_tests = {
             },
         },
     ),
-    'test_invalid_service_storage_constraints': (
-        ['service django has invalid storage constraints 47',
-         'service memcached has invalid storage constraints []',
-         'service haproxy has invalid storage constraints bad wolf',
-         'service rails has invalid storage constraints foo=bar'],
+    'test_invalid_application_storage_constraints': (
+        ['application django has invalid storage constraints 47',
+         'application memcached has invalid storage constraints []',
+         'application haproxy has invalid storage constraints bad wolf',
+         'application rails has invalid storage constraints foo=bar'],
         {
-            'services': {
+            'applications': {
                 'django': {
                     'charm': 'cs:trusty/django-42',
                     'num_units': 2,
@@ -474,24 +475,24 @@ _validation_tests = {
             },
         },
     ),
-    'test_invalid_service_options': (
-        ['service django has malformed options',
-         'service haproxy has malformed options',
-         'service rails has malformed options'],
+    'test_invalid_application_options': (
+        ['application django has malformed options',
+         'application haproxy has malformed options',
+         'application rails has malformed options'],
         {
-            'services': {
+            'applications': {
                 'django': {'charm': 'cs:trusty/django-42', 'options': 47},
                 'rails': {'charm': 'trusty/rails', 'options': 'bad wolf'},
                 'haproxy': {'charm': 'cs:trusty/haproxy', 'options': []},
             },
         },
     ),
-    'test_invalid_service_annotations': (
-        ['service django has invalid annotations 47',
-         'service rails has invalid annotations bad wolf',
-         'service haproxy has invalid annotations: keys must be strings'],
+    'test_invalid_application_annotations': (
+        ['application django has invalid annotations 47',
+         'application rails has invalid annotations bad wolf',
+         'application haproxy has invalid annotations: keys must be strings'],
         {
-            'services': {
+            'applications': {
                 'django': {
                     'charm': 'cs:trusty/django-42',
                     'annotations': 47,
@@ -507,11 +508,11 @@ _validation_tests = {
             },
         },
     ),
-    'test_invalid_service_expose_flag': (
-        ['invalid expose value for service django'],
+    'test_invalid_application_expose_flag': (
+        ['invalid expose value for application django'],
         {
             'series': 'wily',
-            'services': {
+            'applications': {
                 'django': {'charm': 'cs:trusty/django-42', 'expose': 'bad'},
             },
         },
@@ -519,12 +520,12 @@ _validation_tests = {
 
     # Invalid unit placement.
     'test_invalid_machine_placement_v3_bundle': (
-        ['too many units placed for service django',
+        ['too many units placed for application django',
          'invalid container bad for placement bad:wolf',
          'legacy bundles may not place units on machines other than 0',
          'invalid placement 47: placement must be a string'],
         {
-            'services': {
+            'applications': {
                 'django': {'charm': 'django', 'to': 'bad:wolf'},
                 'rails': {'charm': 'rails', 'num_units': 1, 'to': '1'},
                 'haproxy': {'charm': 'haproxy', 'num_units': 1, 'to': 47},
@@ -534,9 +535,9 @@ _validation_tests = {
     'test_invalid_machine_placement_v4_bundle': (
         ['invalid container bad for placement bad:wolf',
          'placement 3 refers to a non-existent machine 3',
-         'too many units placed for service haproxy'],
+         'too many units placed for application haproxy'],
         {
-            'services': {
+            'applications': {
                 'django': {
                     'charm': 'django',
                     'num_units': 2,
@@ -552,14 +553,14 @@ _validation_tests = {
             'machines': {1: {}, '2': {}}
         },
     ),
-    'test_invalid_service_placement_v3_bundle': (
-        ['placement no-such refers to non-existent service no-such',
-         'placement no-such=0 refers to non-existent service no-such',
+    'test_invalid_application_placement_v3_bundle': (
+        ['placement no-such refers to non-existent application no-such',
+         'placement no-such=0 refers to non-existent application no-such',
          'unit in placement rails=no-such must be digit',
          'placement haproxy=2 specifies a unit greater than the units in '
-         'service haproxy'],
+         'application haproxy'],
         {
-            'services': {
+            'applications': {
                 'django': {
                     'charm': 'utopic/django',
                     'num_units': 1,
@@ -579,16 +580,16 @@ _validation_tests = {
             },
         },
     ),
-    'test_invalid_service_placement_v4_bundle': (
+    'test_invalid_application_placement_v4_bundle': (
         ['charm cs:utopic/django cannot be deployed to machine with different '
          'series trusty',
-         'placement no-such refers to non-existent service no-such',
-         'placement no-such/0 refers to non-existent service no-such',
+         'placement no-such refers to non-existent application no-such',
+         'placement no-such/0 refers to non-existent application no-such',
          'unit in placement rails/invalid must be digit',
          'placement haproxy/2 specifies a unit greater than the units in '
-         'service haproxy'],
+         'application haproxy'],
         {
-            'services': {
+            'applications': {
                 'django': {
                     'charm': 'utopic/django',
                     'num_units': 3,
@@ -618,13 +619,13 @@ _validation_tests = {
             },
         },
     ),
-    'test_invalid_service_placement_num_units': (
+    'test_invalid_application_placement_num_units': (
         ['machine 0 not referred to by a placement directive',
          'placement 42 refers to a non-existent machine 42',
-         'num_units for service rails must be a digit',
+         'num_units for application rails must be a digit',
          'invalid container no-such for placement no-such:1'],
         {
-            'services': {
+            'applications': {
                 'django': {
                     'charm': 'utopic/django',
                     'num_units': 3,
@@ -662,7 +663,7 @@ _validation_tests = {
          'machine -47 has an invalid id, must be positive digit',
          'machine -47 not referred to by a placement directive'],
         {
-            'services': {
+            'applications': {
                 'django': {'charm': 'utopic/django', 'num_units': 3},
             },
             'machines': {
@@ -680,7 +681,7 @@ _validation_tests = {
     'test_invalid_machines_type': (
         ['machine 1 does not appear to be well-formed'],
         {
-            'services': {
+            'applications': {
                 'django': {
                     'charm': 'cs:trusty/django-42',
                     'num_units': 1,
@@ -695,7 +696,7 @@ _validation_tests = {
          'machine 1 has invalid constraints invalid',
          'machine 2 has invalid constraints no-such=exterminate'],
         {
-            'services': {
+            'applications': {
                 'rails': {
                     'charm': 'rails',
                     'num_units': 3,
@@ -714,7 +715,7 @@ _validation_tests = {
          'machine 1 has invalid series no:such',
          'machine 2 series must specify a charm series'],
         {
-            'services': {
+            'applications': {
                 'rails': {
                     'charm': 'precise/rails',
                     'num_units': 3,
@@ -733,7 +734,7 @@ _validation_tests = {
          'machine 1 has invalid annotations invalid',
          'machine 2 has invalid annotations: keys must be strings'],
         {
-            'services': {
+            'applications': {
                 'rails': {
                     'charm': 'precise/rails',
                     'num_units': 3,
@@ -754,7 +755,7 @@ _validation_tests = {
          'machine 1 series must be a string, found 42',
          'machine 2 has invalid constraints we=are=the=borg'],
         {
-            'services': {
+            'applications': {
                 'rails': {
                     'charm': 'precise/rails',
                     'num_units': 3,
@@ -776,11 +777,11 @@ _validation_tests = {
          'relation bad wolf is malformed',
          'relation haproxy:web -> {} has malformed endpoint {}',
          'relation mysql:db -> rails:db endpoint rails:db refers to a '
-         'non-existent service rails',
+         'non-existent application rails',
          'relation no-such -> django endpoint no-such refers to a '
-         'non-existent service no-such'],
+         'non-existent application no-such'],
         {
-            'services': {
+            'applications': {
                 'django': {'charm': 'cs:trusty/django-42', 'num_units': 1},
                 'mysql': {'charm': 'trusty/mysql', 'num_units': 1},
                 'haproxy': {'charm': 'cs:trusty/haproxy', 'num_units': 1},
