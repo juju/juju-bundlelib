@@ -221,7 +221,7 @@ def _parse_url(url, fully_qualified=False):
             raise ValueError(msg.encode('utf-8'))
         schema = 'cs'
         remaining = url
-    if schema not in ('cs', 'local'):
+    if schema not in ('ch', 'cs', 'local'):
         msg = 'URL has invalid schema: {}'.format(schema)
         raise ValueError(msg.encode('utf-8'))
     # Retrieve and validate the optional user.
