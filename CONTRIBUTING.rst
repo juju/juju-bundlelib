@@ -64,7 +64,7 @@ development.
 
 3. Prepare your development environment::
 
-    $ make devenv
+    $ make setup
 
 4. Create a branch for local development::
 
