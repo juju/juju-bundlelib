@@ -61,10 +61,6 @@ class TestReference(unittest.TestCase):
         # Promulgated charm without series and revision.
         (make_reference(user='', series='', revision=None),
          'cs:juju-gui'),
-
-        # Charmhub charm.
-        (make_reference(),
-         'ch:minio'),
     )
 
     jujucharms_tests = (
@@ -84,8 +80,6 @@ class TestReference(unittest.TestCase):
          'juju-gui/precise'),
         (make_reference(user='', series='', revision=None),
          'juju-gui'),
-        (make_reference(),
-         'minio'),
     )
 
     def test_attributes(self):
@@ -194,7 +188,6 @@ class TestReference(unittest.TestCase):
         # Two references with different attributes are not equal.
         tests = (
             (make_reference(schema='cs'),
-             make_reference(schema='ch'),
              make_reference(schema='local')),
             (make_reference(user=''),
              make_reference(user='who')),
@@ -514,10 +507,6 @@ class TestReferenceFromString(
             # No schema, series and revision, promulgated.
             ('juju-gui',
              make_reference(user='', series='', revision=None)),
-
-            # Charmhub charm.
-            ('ch:minio',
-             make_reference()),
         )
         for url, expected_ref in tests:
             ref = references.Reference.from_string(url)
